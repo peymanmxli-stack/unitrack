@@ -1,0 +1,229 @@
+{% extends "docente/docente_base.html" %}
+
+{#
+docente_session_history.html
+
+Teaching idea:
+This page is the teacher review page for attendance sessions.
+
+What this page now does:
+- lets the teacher filter session history
+- lets the teacher export filtered CSV directly
+- lets the teacher jump to the full Export Center
+- passes current filters to Export Center automatically
+
+Why this matters:
+This creates a professional SaaS flow.
+
+Old flow:
+Session History -> teacher manually re-enters filters in Export Center
+
+New flow:
+Session History -> Advanced Export Center -> filters already filled
+
+That feels much more intelligent and premium.
+#}
+
+{% block title %}Session History{% endblock %}
+
+{% block page_title %}
+Session History
+{% endblock %}
+
+{% block content %}
+
+<style>
+.filter-form{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    align-items:center;
+}
+
+.filter-control{
+    min-height:44px;
+    height:44px;
+    padding:0 14px;
+    border-radius:8px;
+    border:1px solid #1e293b;
+    background:#0f172a;
+    color:#e5e7eb;
+    font-size:14px;
+    outline:none;
+}
+
+.filter-control::placeholder{
+    color:#64748b;
+}
+
+.export-actions{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    align-items:center;
+}
+
+.session-actions{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    align-items:center;
+    margin-top:14px;
+}
+
+.summary-row{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:12px;
+}
+
+.summary-badge{
+    background:#0f172a;
+    border:1px solid #1e293b;
+    border-radius:999px;
+    padding:8px 12px;
+    font-size:13px;
+    color:#cbd5e1;
+}
+</style>
+
+<div class="card">
+    <h2>Your Teaching Sessions</h2>
+    <p>Review attendance sessions and export professional academic reports.</p>
+</div>
+
+<div class="card">
+
+    <form method="GET" class="filter-form">
+
+        <input
+            type="text"
+            name="subject"
+            placeholder="Subject"
+            value="{{ request.args.get('subject','') }}"
+            class="filter-control"
+        >
+
+        <select name="status" class="filter-control">
+            <option value="">All</option>
+            <option value="open" {% if request.args.get('status') == 'open' %}selected{% endif %}>Open</option>
+            <option value="closed" {% if request.args.get('status') == 'closed' %}selected{% endif %}>Closed</option>
+        </select>
+
+        <input
+            type="date"
+            name="from_date"
+            value="{{ request.args.get('from_date','') }}"
+            class="filter-control"
+        >
+
+        <input
+            type="date"
+            name="to_date"
+            value="{{ request.args.get('to_date','') }}"
+            class="filter-control"
+        >
+
+        <button type="submit" class="btn btn-primary">Filter</button>
+
+    </form>
+
+</div>
+
+<div class="card">
+
+    <h3>Teacher Export Center</h3>
+    <p style="color:#94a3b8;">
+        Use the current filters for a quick CSV download, or open the advanced reporting workspace with filters already loaded.
+    </p>
+
+    <div class="export-actions">
+
+        <a class="btn btn-primary"
+           href="{{ url_for(
+                'docente_views.docente_export_filtered_sessions_csv',
+                subject=request.args.get('subject',''),
+                status=request.args.get('status',''),
+                from_date=request.args.get('from_date',''),
+                to_date=request.args.get('to_date','')
+           ) }}">
+            Export Filtered Sessions CSV
+        </a>
+
+        <a class="btn btn-success"
+           href="{{ url_for(
+                'docente_views.docente_export_center_page',
+                subject=request.args.get('subject',''),
+                status=request.args.get('status',''),
+                from_date=request.args.get('from_date',''),
+                to_date=request.args.get('to_date','')
+           ) }}">
+            Advanced Export Center
+        </a>
+
+    </div>
+
+</div>
+
+{% if history_items and history_items|length > 0 %}
+
+    {% for item in history_items %}
+
+    {% set s = item.session %}
+    {% set cg = item.class_group %}
+    {% set summary = item.summary %}
+
+    <div class="card">
+
+        <h3>{{ cg.subject_name if cg.subject_name else "Unnamed Subject" }}</h3>
+
+        <p><strong>Session:</strong> {{ s.id }}</p>
+
+        <p>
+            <strong>Status:</strong>
+            {% if s.is_open %}
+                <span style="color:#22c55e;">OPEN</span>
+            {% else %}
+                <span style="color:#ef4444;">CLOSED</span>
+            {% endif %}
+        </p>
+
+        <p><strong>Start:</strong> {{ s.start_time if s.start_time else "—" }}</p>
+        <p><strong>End:</strong> {{ s.end_time if s.end_time else "—" }}</p>
+
+        <div class="summary-row">
+            <div class="summary-badge">Total {{ summary.total_students }}</div>
+            <div class="summary-badge">Present {{ summary.present_count }}</div>
+            <div class="summary-badge">Late {{ summary.late_count }}</div>
+            <div class="summary-badge">Absent {{ summary.absent_count }}</div>
+            <div class="summary-badge">Not Marked {{ summary.not_marked_count }}</div>
+        </div>
+
+        <div class="session-actions">
+
+            <a class="btn btn-primary"
+               href="{{ url_for('docente_views.docente_session_analytics_page', session_id=s.id) }}">
+                Analytics
+            </a>
+
+            <a class="btn btn-primary"
+               href="/attendance/sessions/{{ s.id }}/export/csv">
+                Export Single Session
+            </a>
+
+        </div>
+
+    </div>
+
+    {% endfor %}
+
+{% else %}
+
+    <div class="card">
+        <p>No session history found with the current filters.</p>
+    </div>
+
+{% endif %}
+
+{% endblock %}

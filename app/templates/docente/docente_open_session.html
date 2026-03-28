@@ -1,0 +1,278 @@
+{% extends "docente/docente_base.html" %}
+
+{% block title %}Open Session{% endblock %}
+
+{% block page_title %}
+Open Session
+{% endblock %}
+
+{% block content %}
+
+<style>
+
+.open-session-wrapper{
+    max-width:900px;
+    margin:0 auto;
+}
+
+.hero-card{
+    background:#020617;
+    border:1px solid #1e293b;
+    border-radius:16px;
+    padding:24px;
+    margin-bottom:22px;
+}
+
+.hero-card h2{
+    margin:0 0 10px 0;
+    color:#38bdf8;
+    font-size:28px;
+}
+
+.hero-card p{
+    margin:0;
+    color:#cbd5e1;
+    line-height:1.7;
+}
+
+.info-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:16px;
+    margin-top:20px;
+}
+
+.info-box{
+    background:#0f172a;
+    border:1px solid #1e293b;
+    border-radius:12px;
+    padding:16px;
+}
+
+.info-label{
+    display:block;
+    font-size:13px;
+    color:#94a3b8;
+    margin-bottom:8px;
+    text-transform:uppercase;
+    letter-spacing:0.6px;
+}
+
+.info-value{
+    color:#f8fafc;
+    font-size:16px;
+    font-weight:700;
+    line-height:1.5;
+    word-break:break-word;
+}
+
+.form-card{
+    background:#020617;
+    border:1px solid #1e293b;
+    border-radius:16px;
+    padding:24px;
+}
+
+.form-card h3{
+    margin:0 0 10px 0;
+    color:#e2e8f0;
+    font-size:22px;
+}
+
+.form-subtitle{
+    margin:0 0 22px 0;
+    color:#94a3b8;
+    line-height:1.7;
+}
+
+.alert-error{
+    background:rgba(127,29,29,0.20);
+    border:1px solid rgba(239,68,68,0.45);
+    color:#fecaca;
+    border-radius:12px;
+    padding:14px 16px;
+    margin-bottom:18px;
+    line-height:1.6;
+}
+
+.form-group{
+    margin-bottom:20px;
+}
+
+.form-label{
+    display:block;
+    margin-bottom:8px;
+    color:#e5e7eb;
+    font-weight:700;
+    font-size:14px;
+}
+
+.form-help{
+    display:block;
+    margin-top:8px;
+    color:#94a3b8;
+    font-size:13px;
+    line-height:1.6;
+}
+
+.form-textarea{
+    width:100%;
+    min-height:150px;
+    resize:vertical;
+    border-radius:12px;
+    border:1px solid #334155;
+    background:#0f172a;
+    color:#f8fafc;
+    padding:14px 16px;
+    font-size:15px;
+    line-height:1.6;
+    outline:none;
+    box-sizing:border-box;
+}
+
+.form-textarea:focus{
+    border-color:#38bdf8;
+    box-shadow:0 0 0 3px rgba(56,189,248,0.12);
+}
+
+.actions{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    margin-top:6px;
+}
+
+.actions .btn{
+    min-width:170px;
+    height:46px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    text-decoration:none;
+    font-weight:700;
+    border:none;
+    cursor:pointer;
+}
+
+.summary-note{
+    margin-top:20px;
+    padding:14px 16px;
+    border-radius:12px;
+    background:#0f172a;
+    border:1px solid #1e293b;
+    color:#cbd5e1;
+    line-height:1.7;
+}
+
+.summary-note strong{
+    color:#f8fafc;
+}
+
+</style>
+
+<div class="open-session-wrapper">
+
+    <div class="hero-card">
+        <h2>Open New Class Session</h2>
+        <p>
+            Review the class information below and create a new attendance session.
+            You can optionally add notes for this class session before opening it.
+        </p>
+
+        <div class="info-grid">
+
+            <div class="info-box">
+                <span class="info-label">Teacher</span>
+                <div class="info-value">
+                    {{ teacher_name if teacher_name else "—" }}
+                </div>
+            </div>
+
+            <div class="info-box">
+                <span class="info-label">Subject</span>
+                <div class="info-value">
+                    {{ class_group.subject_name if class_group and class_group.subject_name else "—" }}
+                </div>
+            </div>
+
+            <div class="info-box">
+                <span class="info-label">Group</span>
+                <div class="info-value">
+                    {{ class_group.group_code if class_group and class_group.group_code else "—" }}
+                </div>
+            </div>
+
+            <div class="info-box">
+                <span class="info-label">Class ID</span>
+                <div class="info-value">
+                    {{ class_group.id if class_group else "—" }}
+                </div>
+            </div>
+
+            <div class="info-box">
+                <span class="info-label">Active Students</span>
+                <div class="info-value">
+                    {{ total_students }}
+                </div>
+            </div>
+
+            <div class="info-box">
+                <span class="info-label">Description</span>
+                <div class="info-value">
+                    {{ class_group.description if class_group and class_group.description else "No description available" }}
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="form-card">
+        <h3>Session Details</h3>
+        <p class="form-subtitle">
+            Notes are optional. They can be useful for reminders such as exam day,
+            lab activity, delayed start, special instructions, or classroom events.
+        </p>
+
+        {% if error_message %}
+        <div class="alert-error">
+            {{ error_message }}
+        </div>
+        {% endif %}
+
+        <form method="post" action="/docente/class/{{ class_group.id }}/open-session">
+
+            <div class="form-group">
+                <label class="form-label" for="notes">Session Notes (Optional)</label>
+                <textarea
+                    id="notes"
+                    name="notes"
+                    class="form-textarea"
+                    maxlength="500"
+                    placeholder="Example: Midterm review, laboratory practice, classroom changed, late start due to event..."
+                >{{ notes_value if notes_value else "" }}</textarea>
+                <span class="form-help">
+                    Maximum 500 characters.
+                </span>
+            </div>
+
+            <div class="actions">
+                <button type="submit" class="btn btn-success">
+                    Open Session
+                </button>
+
+                <a href="/docente/dashboard" class="btn btn-primary">
+                    Back to Dashboard
+                </a>
+            </div>
+
+        </form>
+
+        <div class="summary-note">
+            <strong>Important:</strong>
+            After opening the session, you will be redirected to the roster page to manage attendance for enrolled students.
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

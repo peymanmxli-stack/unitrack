@@ -1,0 +1,105 @@
+{% extends "personal_base.html" %}
+
+{% block title %}Panel del Personal{% endblock %}
+
+{% block content %}
+
+<div class="card">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap;">
+
+        <div>
+            <h2 style="margin:0 0 8px 0;">Bienvenido, {{ personal_name }}</h2>
+            <p style="margin:0;">Este es tu panel principal de UniTrack.</p>
+
+            <div style="margin-top:16px;">
+                <a
+                    href="/personal/access-control/scanner"
+                    style="
+                        display:inline-block;
+                        background:#7a0019;
+                        color:#ffffff;
+                        text-decoration:none;
+                        padding:12px 18px;
+                        border-radius:10px;
+                        font-weight:700;
+                        box-shadow:0 6px 16px rgba(122,0,25,0.18);
+                    "
+                >
+                    Abrir escáner de acceso
+                </a>
+            </div>
+        </div>
+
+        <div>
+            {% if current_user.photo_path %}
+                <img
+                    src="{{ url_for('static', filename=current_user.photo_path) }}"
+                    alt="Foto del personal"
+                    style="
+                        width:84px;
+                        height:84px;
+                        border-radius:18px;
+                        object-fit:cover;
+                        border:1px solid rgba(0,0,0,0.08);
+                        box-shadow:0 6px 18px rgba(0,0,0,0.12);
+                        background:#ffffff;
+                    "
+                >
+            {% else %}
+                <img
+                    src="{{ url_for('static', filename='img/unitrack_logo.png') }}"
+                    alt="Avatar del personal"
+                    style="
+                        width:84px;
+                        height:84px;
+                        border-radius:18px;
+                        object-fit:cover;
+                        border:1px solid rgba(0,0,0,0.08);
+                        box-shadow:0 6px 18px rgba(0,0,0,0.12);
+                        background:#ffffff;
+                    "
+                >
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+
+<div class="card" style="background:#ffffff;">
+    <h3>Información del personal</h3>
+
+    <div style="margin-top:18px; display:grid; grid-template-columns:180px 1fr; gap:14px 18px; align-items:center;">
+
+        <div style="font-weight:700;">Nombre:</div>
+        <div>{{ personal_name }}</div>
+
+        <div style="font-weight:700;">Número de empleado:</div>
+        <div>{{ current_user.username or "--" }}</div>
+
+        <div style="font-weight:700;">Correo electrónico:</div>
+        <div>{{ current_user.email if current_user.email else "--" }}</div>
+
+        <div style="font-weight:700;">Teléfono:</div>
+        <div>{{ current_user.phone if current_user.phone else "--" }}</div>
+
+        <div style="font-weight:700;">Tipo:</div>
+        <div>Personal</div>
+
+        <div style="font-weight:700;">Estado:</div>
+        <div>
+            {% if current_user.is_active_user %}
+                <span class="status-badge status-green">
+                    Activo
+                </span>
+            {% else %}
+                <span class="status-badge status-red">
+                    Inactivo
+                </span>
+            {% endif %}
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

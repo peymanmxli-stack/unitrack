@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance Management{% endblock %}
+
+{% block content %}
+
+<style>
+/* SAME STYLES — unchanged */
+.docente-hero {
+    background: linear-gradient(135deg, #0f172a, #1e293b, #334155);
+    color: #f8fafc;
+    border-radius: 20px;
+    padding: 28px;
+    margin-bottom: 24px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+}
+.docente-hero h2 { font-weight: 800; margin-bottom: 8px; }
+.docente-hero p { margin-bottom: 0; color: #cbd5e1; }
+.teacher-badge {
+    display: inline-block;
+    margin-top: 14px;
+    background: rgba(56,189,248,0.15);
+    color: #38bdf8;
+    border: 1px solid rgba(56,189,248,0.35);
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 700;
+}
+.panel-card { border: none; border-radius: 20px; box-shadow: 0 10px 26px rgba(15,23,42,0.08); }
+.class-card { border: none; border-radius: 18px; box-shadow: 0 8px 22px rgba(15,23,42,0.08); }
+.summary-grid { display: grid; grid-template-columns: repeat(2,1fr); gap:12px; margin-top:14px; margin-bottom:18px; }
+.summary-item { background:#f8fafc; border:1px solid #e2e8f0; border-radius:14px; padding:14px; text-align:center; }
+.summary-value { font-size:1.4rem; font-weight:800; }
+.helper-box { background:#fff7ed; color:#9a3412; border:1px solid #fdba74; border-radius:14px; padding:16px; margin-top:18px; }
+</style>
+
+<div class="container mt-4 mb-5">
+
+    <div class="docente-hero">
+        <h2>{{ page_title }}</h2>
+        <p>Welcome, {{ teacher_name }}. Manage your class sessions and attendance workflow from one panel.</p>
+        <div class="teacher-badge">UniTrack · Teacher Attendance Panel</div>
+    </div>
+
+    <div class="card panel-card">
+        <div class="card-body p-4">
+
+            <!-- ⭐ NEW TOP ACTION BAR -->
+            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                <div>
+                    <h4 class="fw-bold mb-1">Your Classes</h4>
+                    <p class="text-muted mb-0">
+                        Review each class, open or continue sessions, and monitor attendance progress.
+                    </p>
+                </div>
+
+                <!-- ⭐ SESSION HISTORY BUTTON -->
+                <div>
+                    <a href="/docente/sessions/history"
+                       class="btn btn-outline-dark fw-bold">
+                        📊 Session History
+                    </a>
+                </div>
+            </div>
+
+            {% if dashboard_items and dashboard_items|length > 0 %}
+
+                <div class="row">
+
+                    {% for item in dashboard_items %}
+                        {% set class_group = item.class_group %}
+                        {% set session = item.open_session %}
+                        {% set summary = item.attendance_summary %}
+
+                        <div class="col-lg-6 mb-4">
+                            <div class="card class-card h-100">
+                                <div class="card-body d-flex flex-column">
+
+                                    <h5 class="fw-bold">
+                                        {{ class_group.class_display_name() }}
+                                    </h5>
+
+                                    <p class="text-muted">
+                                        Subject: {{ class_group.subject_name }}
+                                    </p>
+
+                                    {% if session %}
+                                        <span class="badge bg-success mb-3">Session Open</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary mb-3">No Open Session</span>
+                                    {% endif %}
+
+                                    <div class="summary-grid">
+                                        <div class="summary-item">
+                                            Total<br><div class="summary-value">{{ summary.total_students }}</div>
+                                        </div>
+                                        <div class="summary-item">
+                                            Present<br><div class="summary-value text-success">{{ summary.present_count }}</div>
+                                        </div>
+                                        <div class="summary-item">
+                                            Absent<br><div class="summary-value text-danger">{{ summary.absent_count }}</div>
+                                        </div>
+                                        <div class="summary-item">
+                                            Pending<br><div class="summary-value text-warning">{{ summary.not_marked_count }}</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-auto">
+                                        {% if session %}
+                                            <a href="/docente/attendance/session/{{ session.id }}/roster"
+                                               class="btn btn-success w-100">
+                                                Continue Attendance
+                                            </a>
+                                        {% else %}
+                                            <button class="btn btn-primary w-100">
+                                                Open Session
+                                            </button>
+                                        {% endif %}
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            {% endif %}
+
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

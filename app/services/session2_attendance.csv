@@ -1,0 +1,13 @@
+UniTrack Attendance Export
+Session ID,2
+Session Date,2026-03-24
+Session Open,No
+Start Time,2026-03-24T19:32:48.992536
+End Time,2026-03-24T19:45:50.112201
+Teacher,Peyman Docente
+Class,Databases - 3AFM
+Subject,Databases
+Group,3AFM
+
+student_id,student_name,student_username,student_email,attendance_status,attendance_notes,attendance_record_id,attendance_created_at,attendance_updated_at,enrollment_joined_at
+3,Juan Perez,student1,student1@unitrack.local,present,Marked from real roster test,2,2026-03-24T19:44:36.397834,2026-03-24T19:44:36.397834,2026-03-24T19:09:31.581310

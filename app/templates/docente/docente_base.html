@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="UTF-8">
+    <title>{% block title %}UniTrack Teacher{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    {#
+    docente_base.html
+
+    HYBRID UI SYSTEM
+    ----------------
+    This layout now combines:
+
+    1) Academic identity:
+       - maroon university topbar
+       - trust, institution, official feeling
+
+    2) Modern SaaS workspace:
+       - dark app background
+       - premium cards
+       - neon purple/blue accents
+       - clean dashboard spacing
+
+    Why this is the best decision:
+    The teacher should feel this is an OFFICIAL university platform,
+    but also a MODERN smart workspace for real daily work.
+
+    This file controls:
+    - sidebar
+    - topbar
+    - content container
+    - card design
+    - buttons
+    - reusable theme colors
+
+    Because teacher pages use the docente_views blueprint,
+    every url_for() here uses:
+    docente_views.<function_name>
+    #}
+
+    <style>
+        :root{
+            /* ===== ACADEMIC BRAND ===== */
+            --brand-maroon: #7a0019;
+            --brand-maroon-dark: #5f0014;
+
+            /* ===== SAAS WORKSPACE ===== */
+            --bg-main: #0f172a;
+            --bg-sidebar: #111827;
+            --bg-card: #111827;
+            --bg-card-soft: #0b1220;
+            --bg-input: #0b1220;
+
+            /* ===== PREMIUM ACCENTS ===== */
+            --accent-purple: #7c3aed;
+            --accent-blue: #06b6d4;
+            --accent-glow: rgba(124, 58, 237, 0.30);
+
+            /* ===== TEXT ===== */
+            --text-main: #e5e7eb;
+            --text-soft: #94a3b8;
+            --text-muted: #64748b;
+
+            /* ===== UI ===== */
+            --border: #1f2937;
+            --success: #22c55e;
+            --danger: #ef4444;
+
+            /* ===== SHADOWS ===== */
+            --shadow-soft: 0 10px 30px rgba(0,0,0,0.28);
+            --shadow-glow: 0 0 0 1px rgba(124,58,237,0.10), 0 10px 30px rgba(0,0,0,0.25);
+            --button-gradient: linear-gradient(90deg, #7c3aed, #06b6d4);
+        }
+
+        *{
+            box-sizing:border-box;
+        }
+
+        html, body{
+            margin:0;
+            padding:0;
+            min-height:100%;
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: radial-gradient(circle at top left, rgba(124,58,237,0.10), transparent 25%),
+                        radial-gradient(circle at top right, rgba(6,182,212,0.08), transparent 20%),
+                        var(--bg-main);
+            color:var(--text-main);
+        }
+
+        .layout{
+            display:flex;
+            min-height:100vh;
+        }
+
+        /* ==========================================
+           SIDEBAR
+           ========================================== */
+        .sidebar{
+            width:260px;
+            background:
+                linear-gradient(180deg, rgba(124,58,237,0.08), transparent 18%),
+                linear-gradient(180deg, #0b1220 0%, #111827 100%);
+            border-right:1px solid var(--border);
+            padding:28px 20px;
+            flex-shrink:0;
+            position:relative;
+        }
+
+        .sidebar::after{
+            content:"";
+            position:absolute;
+            top:0;
+            right:0;
+            width:1px;
+            height:100%;
+            background:linear-gradient(to bottom, transparent, rgba(6,182,212,0.25), transparent);
+        }
+
+        .logo{
+            margin-bottom:28px;
+        }
+
+        .logo-badge{
+            display:inline-flex;
+            align-items:center;
+            gap:10px;
+            padding:10px 14px;
+            border-radius:14px;
+            background:rgba(255,255,255,0.02);
+            border:1px solid rgba(124,58,237,0.15);
+            box-shadow: var(--shadow-soft);
+        }
+
+        .logo-mark{
+            width:14px;
+            height:14px;
+            border-radius:50%;
+            background:var(--button-gradient);
+            box-shadow: 0 0 18px rgba(124,58,237,0.55);
+            flex-shrink:0;
+        }
+
+        .logo-text{
+            display:flex;
+            flex-direction:column;
+            line-height:1.15;
+        }
+
+        .logo-title{
+            font-size:18px;
+            font-weight:800;
+            letter-spacing:0.3px;
+            color:#f8fafc;
+        }
+
+        .logo-subtitle{
+            font-size:12px;
+            color:var(--text-soft);
+        }
+
+        .nav-section-label{
+            margin:18px 8px 10px;
+            font-size:12px;
+            font-weight:700;
+            letter-spacing:1px;
+            text-transform:uppercase;
+            color:var(--text-muted);
+        }
+
+        .nav-link{
+            display:flex;
+            align-items:center;
+            gap:10px;
+            padding:12px 14px;
+            margin-bottom:10px;
+            border-radius:12px;
+            text-decoration:none;
+            color:var(--text-soft);
+            border:1px solid transparent;
+            transition:all 0.22s ease;
+            background:transparent;
+            font-weight:600;
+        }
+
+        .nav-link:hover{
+            color:#ffffff;
+            background:rgba(255,255,255,0.03);
+            border-color:rgba(124,58,237,0.18);
+            transform:translateX(2px);
+            box-shadow:0 0 0 1px rgba(124,58,237,0.05);
+        }
+
+        .nav-link.active{
+            color:#ffffff;
+            background:
+                linear-gradient(90deg, rgba(124,58,237,0.18), rgba(6,182,212,0.12));
+            border:1px solid rgba(124,58,237,0.22);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .nav-dot{
+            width:8px;
+            height:8px;
+            border-radius:50%;
+            background:currentColor;
+            opacity:0.85;
+            flex-shrink:0;
+        }
+
+        /* ==========================================
+           MAIN AREA
+           ========================================== */
+        .main{
+            flex:1;
+            display:flex;
+            flex-direction:column;
+            min-width:0;
+        }
+
+        /* ==========================================
+           TOPBAR
+           Academic maroon = official university identity
+           ========================================== */
+        .topbar{
+            min-height:74px;
+            border-bottom:1px solid rgba(255,255,255,0.06);
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:16px;
+            flex-wrap:wrap;
+            padding:0 28px;
+            background:linear-gradient(90deg, var(--brand-maroon), var(--brand-maroon-dark));
+            box-shadow:0 6px 20px rgba(0,0,0,0.18);
+        }
+
+        .page-title{
+            font-size:24px;
+            font-weight:800;
+            color:#fff;
+            letter-spacing:0.2px;
+        }
+
+        .teacher-box{
+            display:inline-flex;
+            align-items:center;
+            gap:10px;
+            padding:10px 14px;
+            border-radius:999px;
+            background:rgba(255,255,255,0.08);
+            border:1px solid rgba(255,255,255,0.12);
+            color:#fff;
+            font-size:14px;
+            font-weight:700;
+        }
+
+        .teacher-avatar{
+            width:10px;
+            height:10px;
+            border-radius:50%;
+            background:#22c55e;
+            box-shadow:0 0 14px rgba(34,197,94,0.55);
+            flex-shrink:0;
+        }
+
+        /* ==========================================
+           CONTENT
+           ========================================== */
+        .content{
+            padding:28px;
+            overflow:auto;
+            flex:1;
+        }
+
+        .card{
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)),
+                var(--bg-card);
+            border:1px solid var(--border);
+            border-radius:18px;
+            padding:22px;
+            margin-bottom:20px;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .card h2,
+        .card h3,
+        .card h4{
+            margin-top:0;
+            color:#f8fafc;
+        }
+
+        .card p{
+            color:var(--text-soft);
+            line-height:1.6;
+        }
+
+        /* ==========================================
+           BUTTONS
+           ========================================== */
+        .btn{
+            min-height:44px;
+            padding:10px 18px;
+            border-radius:12px;
+            border:none;
+            cursor:pointer;
+            font-weight:700;
+            text-decoration:none;
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            transition:all 0.20s ease;
+            box-shadow:none;
+        }
+
+        .btn:hover{
+            transform:translateY(-1px);
+        }
+
+        .btn-primary{
+            background:var(--button-gradient);
+            color:#ffffff;
+            box-shadow:0 8px 24px rgba(124,58,237,0.28);
+        }
+
+        .btn-primary:hover{
+            box-shadow:0 10px 28px rgba(124,58,237,0.34);
+        }
+
+        .btn-success{
+            background:linear-gradient(90deg, #16a34a, #22c55e);
+            color:#ffffff;
+            box-shadow:0 8px 24px rgba(34,197,94,0.22);
+        }
+
+        .btn-danger{
+            background:linear-gradient(90deg, #dc2626, #ef4444);
+            color:#ffffff;
+            box-shadow:0 8px 24px rgba(239,68,68,0.22);
+        }
+
+        /* ==========================================
+           FORM ELEMENTS
+           ========================================== */
+        input,
+        select,
+        textarea{
+            background:var(--bg-input);
+            color:var(--text-main);
+            border:1px solid var(--border);
+            border-radius:12px;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus{
+            outline:none;
+            border-color:rgba(124,58,237,0.45);
+            box-shadow:0 0 0 3px rgba(124,58,237,0.12);
+        }
+
+        /* ==========================================
+           RESPONSIVE
+           ========================================== */
+        @media (max-width: 980px){
+            .layout{
+                flex-direction:column;
+            }
+
+            .sidebar{
+                width:100%;
+                border-right:none;
+                border-bottom:1px solid var(--border);
+            }
+
+            .sidebar::after{
+                display:none;
+            }
+
+            .content{
+                padding:20px;
+            }
+
+            .topbar{
+                padding:16px 20px;
+            }
+        }
+
+        @media (max-width: 640px){
+            .page-title{
+                font-size:20px;
+            }
+
+            .card{
+                padding:18px;
+                border-radius:16px;
+            }
+
+            .logo-title{
+                font-size:17px;
+            }
+        }
+    </style>
+
+</head>
+
+<body>
+
+{% set current_path = request.path %}
+
+<div class="layout">
+
+    <!--
+    Teacher sidebar:
+    This is the workspace navigation for the docente platform.
+    It keeps academic pages organized like a real SaaS dashboard.
+    -->
+    <div class="sidebar">
+
+        <div class="logo">
+            <div class="logo-badge">
+                <div class="logo-mark"></div>
+                <div class="logo-text">
+                    <div class="logo-title">UniTrack</div>
+                    <div class="logo-subtitle">Teacher Workspace</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="nav-section-label">Workspace</div>
+
+        <a
+            class="nav-link {% if current_path == '/docente/dashboard' %}active{% endif %}"
+            href="{{ url_for('docente_views.docente_dashboard_page') }}">
+            <span class="nav-dot"></span>
+            Dashboard
+        </a>
+
+        <a
+            class="nav-link {% if current_path == '/docente/classes' %}active{% endif %}"
+            href="{{ url_for('docente_views.docente_classes_page') }}">
+            <span class="nav-dot"></span>
+            My Classes
+        </a>
+
+        <a
+            class="nav-link {% if current_path == '/docente/sessions/history' %}active{% endif %}"
+            href="{{ url_for('docente_views.docente_session_history_page') }}">
+            <span class="nav-dot"></span>
+            Session History
+        </a>
+
+        <a
+            class="nav-link {% if current_path == '/docente/export-center' %}active{% endif %}"
+            href="{{ url_for('docente_views.docente_export_center_page') }}">
+            <span class="nav-dot"></span>
+            Export Center
+        </a>
+
+        <div class="nav-section-label">Account</div>
+
+        <a class="nav-link" href="{{ url_for('auth.logout') }}">
+            <span class="nav-dot"></span>
+            Logout
+        </a>
+
+    </div>
+
+    <!--
+    Main area:
+    The topbar keeps the university identity.
+    The inside workspace keeps the modern dark SaaS feel.
+    -->
+    <div class="main">
+
+        <div class="topbar">
+            <div class="page-title">
+                {% block page_title %}Teacher Panel{% endblock %}
+            </div>
+
+            <div class="teacher-box">
+                <span class="teacher-avatar"></span>
+                {{ current_user.first_name }}
+            </div>
+        </div>
+
+        <div class="content">
+            {% block content %}{% endblock %}
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>

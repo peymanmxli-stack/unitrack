@@ -1,0 +1,150 @@
+{% extends "student_base.html" %}
+
+{% block title %}QR Scanner{% endblock %}
+
+{% block content %}
+
+<div style="margin-bottom:18px;">
+    <h1 class="section-title">Escáner QR de acceso</h1>
+    <p class="section-subtitle">
+        Simula el lector de acceso pegando el contenido del código QR del estudiante.
+    </p>
+</div>
+
+<div class="card" style="max-width:900px;">
+    <form method="POST" action="/student/access-control/scanner">
+        <div style="margin-bottom:14px;">
+            <label style="display:block; font-weight:800; margin-bottom:8px;">
+                Contenido del QR
+            </label>
+
+            <textarea
+                name="qr_text"
+                rows="5"
+                style="
+                    width:100%;
+                    border:1px solid #dbe4f0;
+                    border-radius:14px;
+                    padding:14px;
+                    font-size:14px;
+                    resize:vertical;
+                    font-family:Consolas, 'Courier New', monospace;
+                "
+                placeholder="UNITRACK|ACCESS|student_id=7|username=peyman123|name=Peyman Miyandashti"
+            >{{ qr_text_value or '' }}</textarea>
+        </div>
+
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+            <button
+                type="submit"
+                style="
+                    border:none;
+                    border-radius:12px;
+                    padding:12px 18px;
+                    background:linear-gradient(90deg,#16a34a,#22c55e);
+                    color:white;
+                    font-size:15px;
+                    font-weight:900;
+                    cursor:pointer;
+                "
+            >
+                Escanear QR
+            </button>
+
+            <a
+                href="/student/access-control/scanner"
+                style="
+                    display:inline-block;
+                    text-decoration:none;
+                    border-radius:12px;
+                    padding:12px 18px;
+                    background:#e2e8f0;
+                    color:#0f172a;
+                    font-size:15px;
+                    font-weight:900;
+                "
+            >
+                Limpiar
+            </a>
+        </div>
+    </form>
+</div>
+
+{% if scan_result %}
+    {% if scan_result.success %}
+        <div class="card" style="
+            max-width:900px;
+            background:rgba(34,197,94,0.10);
+            border:1px solid rgba(34,197,94,0.28);
+        ">
+            <h3 style="margin-top:0; color:#166534;">Escaneo exitoso</h3>
+
+            <div style="display:grid; grid-template-columns:220px 1fr; gap:12px 14px; align-items:center;">
+                <div style="font-weight:800;">Mensaje:</div>
+                <div>{{ scan_result.message }}</div>
+
+                <div style="font-weight:800;">Acción:</div>
+                <div>
+                    {% if scan_result.action == "check_in" %}
+                        <span class="status-badge status-green">Check-In</span>
+                    {% elif scan_result.action == "check_out" %}
+                        <span class="status-badge status-red">Check-Out</span>
+                    {% else %}
+                        {{ scan_result.action }}
+                    {% endif %}
+                </div>
+
+                <div style="font-weight:800;">Nombre:</div>
+                <div>{{ scan_result.student_name }}</div>
+
+                <div style="font-weight:800;">Usuario:</div>
+                <div>{{ scan_result.username }}</div>
+
+                <div style="font-weight:800;">Estado:</div>
+                <div>{{ scan_result.status }}</div>
+
+                <div style="font-weight:800;">Check-In:</div>
+                <div>{{ scan_result.check_in_time or "--" }}</div>
+
+                <div style="font-weight:800;">Check-Out:</div>
+                <div>{{ scan_result.check_out_time or "--" }}</div>
+            </div>
+        </div>
+    {% else %}
+        <div class="card" style="
+            max-width:900px;
+            background:rgba(239,68,68,0.10);
+            border:1px solid rgba(239,68,68,0.28);
+        ">
+            <h3 style="margin-top:0; color:#b91c1c;">Escaneo fallido</h3>
+
+            <div style="display:grid; grid-template-columns:220px 1fr; gap:12px 14px;">
+                <div style="font-weight:800;">Mensaje:</div>
+                <div>{{ scan_result.message }}</div>
+
+                <div style="font-weight:800;">Código HTTP:</div>
+                <div>{{ scan_result.status_code }}</div>
+            </div>
+        </div>
+    {% endif %}
+{% endif %}
+
+<div class="card" style="max-width:900px;">
+    <h3 style="margin-top:0;">Ejemplo rápido</h3>
+    <p style="margin-top:0; color:#64748b;">
+        Pega un QR real como este:
+    </p>
+
+    <div style="
+        background:#0f172a;
+        color:#f8fafc;
+        padding:14px;
+        border-radius:14px;
+        font-family:Consolas, monospace;
+        font-size:14px;
+    ">
+        UNITRACK|ACCESS|student_id=7|username=peyman123|name=Peyman Miyandashti
+    </div>
+</div>
+
+{% endblock %}

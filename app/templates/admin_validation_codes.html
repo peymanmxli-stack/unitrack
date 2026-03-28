@@ -1,0 +1,362 @@
+{% extends "admin_base.html" %}
+
+{#
+admin_validation_codes.html
+
+Teaching idea:
+This page shows the full lifecycle of validation codes.
+
+UX upgrade goals:
+- clearer generate area
+- more professional status badges
+- copy-friendly code display
+- filter bar for quick monitoring
+- cleaner visual hierarchy for admin use
+
+Important system rule:
+Validation codes are the university identity gate.
+Without a valid code, registration must fail.
+#}
+
+{% block title %}Validation Codes Monitoring{% endblock %}
+
+{% block page_title %}
+Validation Codes Monitoring
+{% endblock %}
+
+{% block content %}
+
+<div class="card">
+    <h2>Validation Codes</h2>
+    <p>Here the administrator can create, monitor, and verify university registration codes.</p>
+</div>
+
+<!-- GENERATE CODE AREA -->
+<div class="card">
+    <h2>Create New Validation Code</h2>
+    <p>Generate a one-time registration code for a real university member.</p>
+
+    <form method="POST" action="{{ url_for('admin.generate_validation_code') }}">
+
+        <div style="
+            display:grid;
+            grid-template-columns: 1fr 1.4fr auto;
+            gap:16px;
+            align-items:end;
+            margin-top:16px;
+        ">
+
+            <div style="display:flex; flex-direction:column;">
+                <label style="font-weight:bold; margin-bottom:6px;">Expiration Hours</label>
+                <input
+                    type="number"
+                    name="expires_in_hours"
+                    min="1"
+                    max="168"
+                    value="24"
+                    style="
+                        height:44px;
+                        padding:0 12px;
+                        border:1px solid #d1d5db;
+                        border-radius:8px;
+                        font-size:14px;
+                    "
+                >
+            </div>
+
+            <div style="display:flex; flex-direction:column;">
+                <label style="font-weight:bold; margin-bottom:6px;">Purpose Note</label>
+                <input
+                    type="text"
+                    name="purpose_note"
+                    placeholder="example: New teacher registration"
+                    style="
+                        height:44px;
+                        padding:0 12px;
+                        border:1px solid #d1d5db;
+                        border-radius:8px;
+                        font-size:14px;
+                    "
+                >
+            </div>
+
+            <div style="display:flex; flex-direction:column;">
+                <button
+                    type="submit"
+                    style="
+                        height:44px;
+                        padding:0 18px;
+                        background:#111827;
+                        color:white;
+                        border:none;
+                        border-radius:8px;
+                        font-weight:bold;
+                        cursor:pointer;
+                        min-width:240px;
+                    "
+                >
+                    Generate Validation Code
+                </button>
+            </div>
+
+        </div>
+
+    </form>
+</div>
+
+<!-- FILTER BAR -->
+<div class="card">
+    <form method="GET" action="{{ url_for('admin_views.validation_codes_page') }}">
+
+        <div style="
+            display:grid;
+            grid-template-columns: 1.2fr 1fr auto;
+            gap:16px;
+            align-items:end;
+        ">
+
+            <div style="display:flex; flex-direction:column;">
+                <label style="font-weight:bold; margin-bottom:6px;">Search Code</label>
+                <input
+                    type="text"
+                    name="search"
+                    value="{{ request.args.get('search', '') }}"
+                    placeholder="search validation code"
+                    style="
+                        height:44px;
+                        padding:0 12px;
+                        border:1px solid #d1d5db;
+                        border-radius:8px;
+                        font-size:14px;
+                    "
+                >
+            </div>
+
+            <div style="display:flex; flex-direction:column;">
+                <label style="font-weight:bold; margin-bottom:6px;">Status</label>
+                <select
+                    name="status"
+                    style="
+                        height:44px;
+                        padding:0 12px;
+                        border:1px solid #d1d5db;
+                        border-radius:8px;
+                        font-size:14px;
+                    "
+                >
+                    <option value="">All Status</option>
+                    <option value="usable" {% if request.args.get('status') == 'usable' %}selected{% endif %}>Usable</option>
+                    <option value="used" {% if request.args.get('status') == 'used' %}selected{% endif %}>Used</option>
+                    <option value="expired" {% if request.args.get('status') == 'expired' %}selected{% endif %}>Expired</option>
+                </select>
+            </div>
+
+            <div style="display:flex; gap:10px; min-width:220px;">
+
+                <button
+                    type="submit"
+                    style="
+                        height:44px;
+                        padding:0 18px;
+                        background:#111827;
+                        color:white;
+                        border:none;
+                        border-radius:8px;
+                        font-weight:bold;
+                        cursor:pointer;
+                        flex:1;
+                    "
+                >
+                    Apply
+                </button>
+
+                <a
+                    href="{{ url_for('admin_views.validation_codes_page') }}"
+                    style="
+                        height:44px;
+                        padding:0 18px;
+                        display:flex;
+                        align-items:center;
+                        justify-content:center;
+                        background:#e5e7eb;
+                        color:#111827;
+                        border-radius:8px;
+                        text-decoration:none;
+                        font-weight:bold;
+                        flex:1;
+                    "
+                >
+                    Reset
+                </a>
+
+            </div>
+
+        </div>
+
+    </form>
+</div>
+
+<!-- MONITORING TABLE -->
+<div class="card">
+
+    <table style="width:100%; border-collapse:collapse;">
+
+        <thead>
+            <tr style="background:#111827; color:white;">
+                <th style="padding:12px; text-align:left;">Code</th>
+                <th style="padding:12px; text-align:left;">Generated By</th>
+                <th style="padding:12px; text-align:left;">Created At</th>
+                <th style="padding:12px; text-align:left;">Expires At</th>
+                <th style="padding:12px; text-align:left;">Remaining Time</th>
+                <th style="padding:12px; text-align:left;">Status</th>
+                <th style="padding:12px; text-align:left;">Used By</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            {% for code in validation_codes %}
+            <tr style="
+                border-bottom:1px solid #e5e7eb;
+                {% if code.is_used %}
+                    background:#f9fafb;
+                {% elif code.is_expired() %}
+                    background:#fef2f2;
+                {% elif code.can_be_used() %}
+                    background:#f0fdf4;
+                {% endif %}
+            ">
+
+                <td style="padding:12px;">
+                    <div style="
+                        display:inline-flex;
+                        align-items:center;
+                        gap:10px;
+                        background:#111827;
+                        color:#ffffff;
+                        padding:8px 12px;
+                        border-radius:10px;
+                        font-weight:bold;
+                        letter-spacing:1px;
+                        font-family:Consolas, monospace;
+                    ">
+                        {{ code.code }}
+                    </div>
+                </td>
+
+                <td style="padding:12px;">
+                    {% if code.generator_user %}
+                        {{ code.generator_user.username }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+
+                <td style="padding:12px;">
+                    {% if code.created_at %}
+                        {{ code.created_at.strftime("%Y-%m-%d %H:%M:%S") }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+
+                <td style="padding:12px;">
+                    {% if code.expires_at %}
+                        {{ code.expires_at.strftime("%Y-%m-%d %H:%M:%S") }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+
+                <td style="padding:12px;">
+                    {% if code.is_used %}
+                        <span style="color:#6b7280; font-weight:bold;">Already used</span>
+                    {% elif code.is_expired() %}
+                        <span style="color:#dc2626; font-weight:bold;">Expired</span>
+                    {% else %}
+                        {% if code.remaining_time_text is defined and code.remaining_time_text %}
+                            <span style="color:#15803d; font-weight:bold;">
+                                {{ code.remaining_time_text }}
+                            </span>
+                        {% else %}
+                            <span style="color:#15803d; font-weight:bold;">
+                                Active
+                            </span>
+                        {% endif %}
+                    {% endif %}
+                </td>
+
+                <td style="padding:12px;">
+                    {% if code.is_used %}
+                        <span style="
+                            display:inline-block;
+                            padding:6px 12px;
+                            background:#e5e7eb;
+                            color:#374151;
+                            border-radius:999px;
+                            font-weight:bold;
+                        ">
+                            Used
+                        </span>
+                    {% elif code.is_expired() %}
+                        <span style="
+                            display:inline-block;
+                            padding:6px 12px;
+                            background:#fee2e2;
+                            color:#b91c1c;
+                            border-radius:999px;
+                            font-weight:bold;
+                        ">
+                            Expired
+                        </span>
+                    {% elif code.can_be_used() %}
+                        <span style="
+                            display:inline-block;
+                            padding:6px 12px;
+                            background:#dcfce7;
+                            color:#166534;
+                            border-radius:999px;
+                            font-weight:bold;
+                        ">
+                            Usable
+                        </span>
+                    {% else %}
+                        <span style="
+                            display:inline-block;
+                            padding:6px 12px;
+                            background:#f3f4f6;
+                            color:#4b5563;
+                            border-radius:999px;
+                            font-weight:bold;
+                        ">
+                            Unknown
+                        </span>
+                    {% endif %}
+                </td>
+
+                <td style="padding:12px;">
+                    {% if code.used_by_user %}
+                        {{ code.used_by_user.username }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+
+            </tr>
+            {% endfor %}
+
+            {% if not validation_codes %}
+            <tr>
+                <td colspan="7" style="padding:18px; text-align:center; color:#6b7280;">
+                    No validation codes found with the current filters.
+                </td>
+            </tr>
+            {% endif %}
+
+        </tbody>
+
+    </table>
+
+</div>
+
+{% endblock %}

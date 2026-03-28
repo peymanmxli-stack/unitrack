@@ -1,0 +1,405 @@
+{% extends "admin_base.html" %}
+
+{#
+admin_attendance.html
+
+Teaching idea:
+This page shows attendance monitoring for administrators.
+
+UI decisions:
+- Keep the page simple and clear for real admin users
+- Avoid technical words like CSV in the visible UI
+- Keep Apply + Reset side by side
+- Keep one clear export action: Excel
+#}
+
+{% block title %}Attendance Monitoring{% endblock %}
+
+{% block page_title %}
+Attendance Monitoring
+{% endblock %}
+
+{% block content %}
+
+<div class="card">
+    <h2>Attendance Records</h2>
+    <p>The administrator can monitor all user attendance activity.</p>
+</div>
+
+<div class="card">
+
+    <form method="GET" action="{{ url_for('admin_views.attendance_page') }}">
+
+        <div style="
+            display:grid;
+            grid-template-columns: 1.4fr 1fr 1fr 1fr auto;
+            gap:16px;
+            align-items:end;
+        ">
+
+            <div style="display:flex; flex-direction:column;">
+                <label style="font-weight:bold; margin-bottom:6px;">Username</label>
+                <input
+                    type="text"
+                    name="username"
+                    value="{{ request.args.get('username', '') }}"
+                    placeholder="example: admin"
+                    style="
+                        height:44px;
+                        padding:0 12px;
+                        border:1px solid #d1d5db;
+                        border-radius:8px;
+                        font-size:14px;
+                    "
+                >
+            </div>
+
+            <div style="display:flex; flex-direction:column;">
+                <label style="font-weight:bold; margin-bottom:6px;">Movement Type</label>
+                <select
+                    name="movement_type"
+                    style="
+                        height:44px;
+                        padding:0 12px;
+                        border:1px solid #d1d5db;
+                        border-radius:8px;
+                        font-size:14px;
+                    "
+                >
+                    <option value="">All</option>
+
+                    <option value="check_in"
+                        {% if request.args.get('movement_type') == 'check_in' %}selected{% endif %}>
+                        Check-In
+                    </option>
+
+                    <option value="check_out"
+                        {% if request.args.get('movement_type') == 'check_out' %}selected{% endif %}>
+                        Check-Out
+                    </option>
+                </select>
+            </div>
+
+            <div style="display:flex; flex-direction:column;">
+                <label style="font-weight:bold; margin-bottom:6px;">Start Date</label>
+                <input
+                    type="text"
+                    name="start_date"
+                    value="{{ request.args.get('start_date', '') }}"
+                    placeholder="YYYY-MM-DD"
+                    style="
+                        height:44px;
+                        padding:0 12px;
+                        border:1px solid #d1d5db;
+                        border-radius:8px;
+                        font-size:14px;
+                    "
+                >
+            </div>
+
+            <div style="display:flex; flex-direction:column;">
+                <label style="font-weight:bold; margin-bottom:6px;">End Date</label>
+                <input
+                    type="text"
+                    name="end_date"
+                    value="{{ request.args.get('end_date', '') }}"
+                    placeholder="YYYY-MM-DD"
+                    style="
+                        height:44px;
+                        padding:0 12px;
+                        border:1px solid #d1d5db;
+                        border-radius:8px;
+                        font-size:14px;
+                    "
+                >
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:10px; min-width:220px;">
+
+                <!--
+                First row:
+                Apply + Reset share the space equally.
+                -->
+                <div style="display:flex; gap:10px;">
+
+                    <button
+                        type="submit"
+                        style="
+                            height:44px;
+                            padding:0 18px;
+                            background:#111827;
+                            color:white;
+                            border:none;
+                            border-radius:8px;
+                            font-weight:bold;
+                            cursor:pointer;
+                            flex:1;
+                        "
+                    >
+                        Apply
+                    </button>
+
+                    <a
+                        href="{{ url_for('admin_views.attendance_page') }}"
+                        style="
+                            height:44px;
+                            padding:0 18px;
+                            display:flex;
+                            align-items:center;
+                            justify-content:center;
+                            background:#e5e7eb;
+                            color:#111827;
+                            border-radius:8px;
+                            text-decoration:none;
+                            font-weight:bold;
+                            flex:1;
+                        "
+                    >
+                        Reset
+                    </a>
+
+                </div>
+
+                <!--
+                Second row:
+                One simple export button for real admin users.
+                -->
+                <a
+                    href="{{ url_for(
+                        'admin_views.export_attendance_excel',
+                        username=request.args.get('username', ''),
+                        movement_type=request.args.get('movement_type', ''),
+                        start_date=request.args.get('start_date', ''),
+                        end_date=request.args.get('end_date', '')
+                    ) }}"
+                    style="
+                        height:44px;
+                        display:flex;
+                        align-items:center;
+                        justify-content:center;
+                        background:#2563eb;
+                        color:white;
+                        border-radius:8px;
+                        text-decoration:none;
+                        font-weight:bold;
+                        width:100%;
+                    "
+                >
+                    Download Excel Report
+                </a>
+
+            </div>
+
+        </div>
+
+    </form>
+
+</div>
+
+<div class="card">
+
+    <table style="width:100%; border-collapse:collapse;">
+
+        <thead>
+            <tr style="background:#111827; color:white;">
+                <th style="padding:12px;">ID</th>
+                <th style="padding:12px;">User</th>
+                <th style="padding:12px;">Movement</th>
+                <th style="padding:12px;">Date</th>
+                <th style="padding:12px;">Time</th>
+                <th style="padding:12px;">Notes</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            {% for record in attendance_records %}
+            <tr style="border-bottom:1px solid #e5e7eb;">
+
+                <td style="padding:10px;">{{ record.id }}</td>
+
+                <td style="padding:10px;">
+                    {{ record.user.username }}
+                </td>
+
+                <td style="padding:10px;">
+                    {% if record.movement_type == "check_in" %}
+                        <span style="color:green; font-weight:bold;">Check-In</span>
+                    {% else %}
+                        <span style="color:red; font-weight:bold;">Check-Out</span>
+                    {% endif %}
+                </td>
+
+                <td style="padding:10px;">
+                    {{ record.attendance_date }}
+                </td>
+
+                <td style="padding:10px;">
+                    {{ record.movement_time.strftime("%H:%M:%S") }}
+                </td>
+
+                <td style="padding:10px;">
+                    {{ record.notes or "-" }}
+                </td>
+
+            </tr>
+            {% endfor %}
+
+            {% if not attendance_records %}
+            <tr>
+                <td colspan="6" style="padding:18px; text-align:center; color:#6b7280;">
+                    No attendance records found with the current filters.
+                </td>
+            </tr>
+            {% endif %}
+
+        </tbody>
+
+    </table>
+
+    <!-- PAGINATION -->
+    <div style="
+        margin-top:20px;
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        flex-wrap:wrap;
+        gap:12px;
+    ">
+
+        <div style="color:#4b5563; font-weight:bold;">
+            Page {{ pagination.page }} of {{ pagination.pages if pagination.pages > 0 else 1 }}
+        </div>
+
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+
+            {% if pagination.has_prev %}
+                <a
+                    href="{{ url_for(
+                        'admin_views.attendance_page',
+                        page=pagination.prev_num,
+                        username=request.args.get('username', ''),
+                        movement_type=request.args.get('movement_type', ''),
+                        start_date=request.args.get('start_date', ''),
+                        end_date=request.args.get('end_date', '')
+                    ) }}"
+                    style="
+                        padding:10px 16px;
+                        background:#e5e7eb;
+                        color:#111827;
+                        border-radius:8px;
+                        text-decoration:none;
+                        font-weight:bold;
+                    "
+                >
+                    Previous
+                </a>
+            {% else %}
+                <span style="
+                    padding:10px 16px;
+                    background:#f3f4f6;
+                    color:#9ca3af;
+                    border-radius:8px;
+                    font-weight:bold;
+                ">
+                    Previous
+                </span>
+            {% endif %}
+
+            {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=1) %}
+                {% if page_num %}
+                    {% if page_num == pagination.page %}
+                        <span style="
+                            min-width:42px;
+                            height:42px;
+                            display:flex;
+                            align-items:center;
+                            justify-content:center;
+                            background:#111827;
+                            color:white;
+                            border-radius:8px;
+                            font-weight:bold;
+                        ">
+                            {{ page_num }}
+                        </span>
+                    {% else %}
+                        <a
+                            href="{{ url_for(
+                                'admin_views.attendance_page',
+                                page=page_num,
+                                username=request.args.get('username', ''),
+                                movement_type=request.args.get('movement_type', ''),
+                                start_date=request.args.get('start_date', ''),
+                                end_date=request.args.get('end_date', '')
+                            ) }}"
+                            style="
+                                min-width:42px;
+                                height:42px;
+                                display:flex;
+                                align-items:center;
+                                justify-content:center;
+                                background:#e5e7eb;
+                                color:#111827;
+                                border-radius:8px;
+                                text-decoration:none;
+                                font-weight:bold;
+                            "
+                        >
+                            {{ page_num }}
+                        </a>
+                    {% endif %}
+                {% else %}
+                    <span style="
+                        min-width:42px;
+                        height:42px;
+                        display:flex;
+                        align-items:center;
+                        justify-content:center;
+                        color:#6b7280;
+                        font-weight:bold;
+                    ">
+                        ...
+                    </span>
+                {% endif %}
+            {% endfor %}
+
+            {% if pagination.has_next %}
+                <a
+                    href="{{ url_for(
+                        'admin_views.attendance_page',
+                        page=pagination.next_num,
+                        username=request.args.get('username', ''),
+                        movement_type=request.args.get('movement_type', ''),
+                        start_date=request.args.get('start_date', ''),
+                        end_date=request.args.get('end_date', '')
+                    ) }}"
+                    style="
+                        padding:10px 16px;
+                        background:#111827;
+                        color:white;
+                        border-radius:8px;
+                        text-decoration:none;
+                        font-weight:bold;
+                    "
+                >
+                    Next
+                </a>
+            {% else %}
+                <span style="
+                    padding:10px 16px;
+                    background:#f3f4f6;
+                    color:#9ca3af;
+                    border-radius:8px;
+                    font-weight:bold;
+                ">
+                    Next
+                </span>
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

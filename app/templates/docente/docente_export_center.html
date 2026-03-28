@@ -1,0 +1,285 @@
+{% extends "docente/docente_base.html" %}
+
+{#
+docente_export_center.html
+
+Professional teacher export dashboard page.
+
+Teaching idea:
+This page is not just a button page.
+
+This page becomes the reporting center for teachers.
+
+Here the teacher can:
+- export filtered attendance sessions
+- prepare subject-based reports
+- prepare date-range reports
+- grow later into advanced academic reporting
+
+Important architecture idea:
+I keep this page focused on reporting actions.
+That way Session History stays focused on reviewing sessions,
+while Export Center becomes the real reporting workspace.
+
+Current version:
+- ready to export filtered sessions CSV
+- ready for future grouped reports
+- ready for future batch exports
+#}
+
+{% block title %}Export Center{% endblock %}
+
+{% block page_title %}
+Export Center
+{% endblock %}
+
+{% block content %}
+
+<style>
+
+.export-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(300px, 1fr));
+    gap:20px;
+}
+
+.export-form{
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+}
+
+.form-row{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+}
+
+.form-row label{
+    font-size:14px;
+    font-weight:600;
+    color:#94a3b8;
+}
+
+.form-control{
+    width:100%;
+    min-height:46px;
+    height:46px;
+    border-radius:10px;
+    border:1px solid #1e293b;
+    background:#0f172a;
+    color:#e5e7eb;
+    padding:0 14px;
+    outline:none;
+    font-size:14px;
+}
+
+.form-control::placeholder{
+    color:#64748b;
+}
+
+.export-actions{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    align-items:center;
+}
+
+.export-actions .btn{
+    min-height:46px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.info-list{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+}
+
+.info-box{
+    background:#0f172a;
+    border:1px solid #1e293b;
+    border-radius:12px;
+    padding:16px;
+}
+
+.info-box h4{
+    margin:0 0 8px 0;
+    font-size:16px;
+}
+
+.info-box p{
+    margin:0;
+    color:#94a3b8;
+    line-height:1.6;
+    font-size:14px;
+}
+
+.highlight-box{
+    background:linear-gradient(135deg, rgba(56,189,248,0.10), rgba(34,197,94,0.08));
+    border:1px solid #1e293b;
+}
+
+.quick-links{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    margin-top:12px;
+}
+
+.quick-links .btn{
+    min-height:44px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.section-spacer{
+    margin-top:20px;
+}
+
+</style>
+
+<div class="card">
+    <h2>Teacher Reporting Workspace</h2>
+    <p>
+        Build academic attendance exports using filters such as subject, status, and date range.
+        This page is the professional reporting center for teacher export workflows.
+    </p>
+</div>
+
+<div class="export-grid">
+
+    <div class="card">
+
+        <h3 style="margin-top:0;">Filtered Sessions Export</h3>
+        <p style="color:#94a3b8; margin-top:0;">
+            Choose the academic filters below, then download one CSV containing all matching sessions.
+        </p>
+
+        <form method="GET"
+              action="{{ url_for('docente_views.docente_export_filtered_sessions_csv') }}"
+              class="export-form">
+
+            <div class="form-row">
+                <label for="subject">Subject</label>
+                <input
+                    type="text"
+                    id="subject"
+                    name="subject"
+                    class="form-control"
+                    placeholder="Example: Databases"
+                    value="{{ current_subject }}"
+                >
+            </div>
+
+            <div class="form-row">
+                <label for="status">Status</label>
+                <select id="status" name="status" class="form-control">
+                    <option value="" {% if current_status == "" %}selected{% endif %}>All</option>
+                    <option value="open" {% if current_status == "open" %}selected{% endif %}>Open</option>
+                    <option value="closed" {% if current_status == "closed" %}selected{% endif %}>Closed</option>
+                </select>
+            </div>
+
+            <div class="form-row">
+                <label for="from_date">From Date</label>
+                <input
+                    type="date"
+                    id="from_date"
+                    name="from_date"
+                    class="form-control"
+                    value="{{ current_from_date }}"
+                >
+            </div>
+
+            <div class="form-row">
+                <label for="to_date">To Date</label>
+                <input
+                    type="date"
+                    id="to_date"
+                    name="to_date"
+                    class="form-control"
+                    value="{{ current_to_date }}"
+                >
+            </div>
+
+            <div class="export-actions">
+                <button type="submit" class="btn btn-primary">
+                    Download Filtered CSV
+                </button>
+
+                <a class="btn btn-success"
+                   href="{{ url_for('docente_views.docente_session_history_page') }}">
+                    Back to Session History
+                </a>
+            </div>
+
+        </form>
+
+    </div>
+
+    <div class="card highlight-box">
+
+        <h3 style="margin-top:0;">Export Center Roadmap</h3>
+        <p style="color:#94a3b8; margin-top:0;">
+            This is already a real teacher reporting page, and it is also the base for more advanced academic exports.
+        </p>
+
+        <div class="info-list section-spacer">
+
+            <div class="info-box">
+                <h4>Current Working Feature</h4>
+                <p>
+                    Export one CSV with multiple sessions using filters like subject, status,
+                    and date range.
+                </p>
+            </div>
+
+            <div class="info-box">
+                <h4>Next Upgrade Ideas</h4>
+                <p>
+                    Subject-grouped reports, monthly summaries, period reports, and multi-file batch export.
+                </p>
+            </div>
+
+            <div class="info-box">
+                <h4>Professional Value</h4>
+                <p>
+                    This turns UniTrack into a real academic reporting platform instead of only a daily attendance tool.
+                </p>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<div class="card section-spacer">
+    <h3 style="margin-top:0;">Quick Reporting Actions</h3>
+    <p style="color:#94a3b8;">
+        Use these shortcuts to move fast between review and reporting workflows.
+    </p>
+
+    <div class="quick-links">
+        <a class="btn btn-primary"
+           href="{{ url_for('docente_views.docente_session_history_page') }}">
+            Open Session History
+        </a>
+
+        <a class="btn btn-primary"
+           href="{{ url_for('docente_views.docente_classes_page') }}">
+            Open My Classes
+        </a>
+
+        <a class="btn btn-primary"
+           href="{{ url_for('docente_views.docente_dashboard_page') }}">
+            Open Dashboard
+        </a>
+    </div>
+</div>
+
+{% endblock %}

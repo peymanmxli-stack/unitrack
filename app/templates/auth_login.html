@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="{{ current_language|default('es') }}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ text.page_title }}</title>
+
+<style>
+
+*{margin:0;padding:0;box-sizing:border-box;}
+
+body{
+font-family:Arial, Helvetica, sans-serif;
+min-height:100vh;
+background:white;
+color:#1f2937;
+position:relative;
+display:flex;
+flex-direction:column;
+}
+
+/* HEADER */
+
+.top-strip{
+width:100%;
+height:90px;
+background:linear-gradient(90deg,#7a0019,#5f0014);
+display:flex;
+align-items:center;
+justify-content:space-between;
+padding:0 35px;
+}
+
+.header-left{
+display:flex;
+align-items:center;
+gap:14px;
+color:white;
+}
+
+.header-upbc{
+font-size:30px;
+font-weight:900;
+letter-spacing:2px;
+}
+
+.header-university{
+font-size:14px;
+font-weight:600;
+opacity:0.9;
+}
+
+.header-right{
+display:flex;
+align-items:center;
+gap:14px;
+}
+
+.language-select{
+height:44px;
+padding:0 14px;
+border:none;
+border-radius:10px;
+background:white;
+color:#5f0014;
+font-size:14px;
+font-weight:700;
+outline:none;
+cursor:pointer;
+}
+
+.header-logos{
+display:flex;
+align-items:center;
+gap:14px;
+}
+
+.header-logos img{
+height:44px;
+background:white;
+padding:6px 10px;
+border-radius:10px;
+}
+
+/* ⭐ EDITED POSITIONING */
+
+.corner-unitrack{
+position:absolute;
+top:95px;
+left:10px;
+width:260px;
+height:260px;
+object-fit:contain;
+}
+
+.corner-baja{
+position:absolute;
+top:95px;
+right:40px;
+width:260px;
+height:260px;
+object-fit:contain;
+}
+
+/* PAGE CENTER */
+
+.page-wrap{
+min-height:calc(100vh - 78px);
+display:flex;
+align-items:center;
+justify-content:center;
+flex:1;
+padding-bottom:40px;
+}
+
+/* LOGIN CARD */
+
+.login-card{
+width:100%;
+max-width:420px;
+background:linear-gradient(160deg,#2b0a3d,#4c1d95,#6d28d9);
+border-radius:22px;
+padding:30px;
+box-shadow:0 25px 60px rgba(0,0,0,0.35);
+color:white;
+}
+
+.card-title{
+font-size:22px;
+font-weight:700;
+margin-bottom:20px;
+text-align:center;
+}
+
+.form-group{
+margin-bottom:14px;
+}
+
+.form-label{
+display:block;
+margin-bottom:6px;
+font-size:13px;
+font-weight:700;
+}
+
+.form-input{
+width:100%;
+padding:14px;
+border-radius:14px;
+border:none;
+background:rgba(255,255,255,0.12);
+color:white;
+font-size:15px;
+outline:none;
+}
+
+.form-input:focus{
+background:rgba(255,255,255,0.18);
+}
+
+.form-input::placeholder{
+color:rgba(255,255,255,0.72);
+}
+
+.login-button,
+.register-button{
+width:100%;
+padding:14px;
+margin-top:6px;
+border:none;
+border-radius:14px;
+background:linear-gradient(90deg,#38bdf8,#22c55e);
+color:white;
+font-size:16px;
+font-weight:800;
+cursor:pointer;
+text-decoration:none;
+display:block;
+text-align:center;
+transition:0.2s;
+}
+
+.login-button:hover,
+.register-button:hover{
+transform:translateY(-1px);
+box-shadow:0 10px 24px rgba(0,0,0,0.25);
+}
+
+.secondary-link{
+display:block;
+text-align:right;
+margin-top:8px;
+margin-bottom:10px;
+font-size:13px;
+color:#e9d5ff;
+text-decoration:none;
+}
+
+.secondary-link:hover{
+color:white;
+}
+
+.remember-row{
+display:flex;
+justify-content:flex-end;
+align-items:center;
+gap:8px;
+margin-bottom:18px;
+font-size:13px;
+color:#f3e8ff;
+}
+
+.remember-row input{
+width:16px;
+height:16px;
+cursor:pointer;
+}
+
+.remember-row label{
+cursor:pointer;
+}
+
+.register-button{
+margin-top:18px;
+}
+
+.alert-error{
+margin-bottom:14px;
+padding:12px 14px;
+border-radius:12px;
+background:rgba(239,68,68,0.18);
+border:1px solid rgba(254,202,202,0.28);
+color:#fee2e2;
+font-size:14px;
+font-weight:700;
+}
+
+.alert-success{
+margin-bottom:14px;
+padding:12px 14px;
+border-radius:12px;
+background:rgba(34,197,94,0.18);
+border:1px solid rgba(187,247,208,0.28);
+color:#dcfce7;
+font-size:14px;
+font-weight:700;
+}
+
+/* FOOTER */
+
+.page-footer{
+width:100%;
+background:linear-gradient(90deg,#7a0019,#5f0014);
+color:white;
+padding:26px 40px 18px 40px;
+margin-top:auto;
+}
+
+.footer-content{
+max-width:1400px;
+margin:0 auto;
+display:flex;
+justify-content:space-between;
+align-items:flex-start;
+gap:24px;
+flex-wrap:wrap;
+}
+
+.footer-info{
+font-size:14px;
+line-height:1.8;
+font-weight:600;
+}
+
+.footer-info strong{
+display:block;
+font-size:16px;
+font-weight:800;
+margin-bottom:6px;
+}
+
+.footer-right{
+display:flex;
+align-items:center;
+justify-content:flex-end;
+gap:16px;
+margin-left:auto;
+}
+
+.footer-logo{
+height:128px;
+object-fit:contain;
+display:block;
+}
+
+.footer-upbc-photo{
+height:64px;
+object-fit:contain;
+display:block;
+background:white;
+padding:4px 6px;
+border-radius:6px;
+}
+
+.footer-link{
+display:inline-block;
+margin-top:12px;
+color:white;
+font-weight:800;
+text-decoration:none;
+border-bottom:2px solid #00f0ff;
+padding-bottom:3px;
+}
+
+.footer-link:hover{
+opacity:0.9;
+}
+
+.footer-bottom{
+max-width:1400px;
+margin:18px auto 0 auto;
+padding:14px 20px;
+background:black;
+color:white;
+font-size:13px;
+font-weight:700;
+}
+
+@media (max-width: 900px){
+.top-strip{
+padding:0 16px;
+}
+
+.header-upbc{
+font-size:22px;
+}
+
+.header-university{
+font-size:12px;
+}
+
+.header-right{
+gap:10px;
+}
+
+.header-logos{
+gap:8px;
+}
+
+.header-logos img{
+height:38px;
+padding:5px 8px;
+border-radius:10px;
+}
+
+.corner-unitrack{
+width:170px;
+height:170px;
+left:6px;
+top:100px;
+}
+
+.corner-baja{
+width:170px;
+height:170px;
+right:10px;
+top:100px;
+}
+
+.page-wrap{
+padding:20px 14px 30px 14px;
+}
+
+.page-footer{
+padding:22px 18px 16px 18px;
+}
+
+.footer-right{
+width:100%;
+justify-content:flex-start;
+margin-left:0;
+margin-top:10px;
+}
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="top-strip">
+
+<div class="header-left">
+<div class="header-upbc">UPBC</div>
+<div class="header-university">
+Universidad Politécnica de Baja California
+</div>
+</div>
+
+<div class="header-right">
+
+<form method="GET" action="/auth/login-page" style="margin:0;">
+<select
+class="language-select"
+name="language"
+aria-label="Language selector"
+onchange="this.form.submit()"
+>
+<option value="en" {% if current_language == 'en' %}selected{% endif %}>English</option>
+<option value="es" {% if current_language != 'en' %}selected{% endif %}>Español</option>
+</select>
+</form>
+
+<div class="header-logos">
+<img src="{{ url_for('static', filename='img/sep.png') }}">
+<img src="{{ url_for('static', filename='img/baja_california.png') }}">
+<img src="{{ url_for('static', filename='img/utyp.png') }}">
+</div>
+
+</div>
+
+</div>
+
+<img src="{{ url_for('static', filename='img/unitrack_logo.png') }}" class="corner-unitrack">
+<img src="{{ url_for('static', filename='img/upbc_official.png') }}" class="corner-baja">
+
+<div class="page-wrap">
+
+<div class="login-card">
+
+<div class="card-title">{{ text.card_title }}</div>
+
+{% if error %}
+<div class="alert-error">{{ error }}</div>
+{% endif %}
+
+{% if success_message %}
+<div class="alert-success">{{ success_message }}</div>
+{% endif %}
+
+<form method="POST" action="/auth/login-page">
+
+<input type="hidden" name="language" value="{{ current_language|default('es') }}">
+
+<div class="form-group">
+<label class="form-label">{{ text.login_label }}</label>
+<input
+    type="text"
+    name="login"
+    class="form-input"
+    value="{{ login_value|default('') }}"
+    placeholder="{{ text.login_placeholder }}"
+    required
+>
+</div>
+
+<div class="form-group">
+<label class="form-label">{{ text.password_label }}</label>
+<input
+    type="password"
+    name="password"
+    class="form-input"
+    placeholder="{{ text.password_placeholder }}"
+    required
+>
+</div>
+
+<a href="/auth/forgot-password" class="secondary-link">
+{{ text.forgot_password }}
+</a>
+
+<div class="remember-row">
+<input
+    type="checkbox"
+    id="remember_me"
+    name="remember_me"
+    {% if remember_me %}checked{% endif %}
+>
+<label for="remember_me">{{ text.remember_me }}</label>
+</div>
+
+<button class="login-button" type="submit">
+{{ text.login_button }}
+</button>
+
+</form>
+
+<a href="/auth/register-page" class="register-button">
+{{ text.register_button }}
+</a>
+
+</div>
+
+</div>
+
+<footer class="page-footer">
+
+<div class="footer-content">
+
+<div class="footer-info">
+<strong>Universidad Politécnica de Baja California</strong>
+<div>Calle de la Claridad S/N</div>
+<div>Colonia Plutarco Elías Cales, Mexicali, Baja California, México CP.21376</div>
+<div>Tel Conmutador: (52) 686-104.2727</div>
+<a
+href="https://www.upbc.edu.mx/"
+target="_blank"
+rel="noopener noreferrer"
+class="footer-link"
+>
+Ir al sitio web de UPBC
+</a>
+</div>
+
+<div class="footer-right">
+<img src="{{ url_for('static', filename='img/unitrack_logo.png') }}" class="footer-logo" alt="UniTrack Logo">
+<img src="{{ url_for('static', filename='img/upbc_official.png') }}" class="footer-upbc-photo" alt="UPBC">
+</div>
+
+</div>
+
+<div class="footer-bottom">
+© Todos los Derechos reservados de la Universidad Politécnica de Baja California
+</div>
+
+</footer>
+
+</body>
+</html>

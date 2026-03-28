@@ -1,0 +1,178 @@
+{% extends "student_base.html" %}
+
+{% block title %}{{ "Student Configuration" if (selected_language or current_user.language or "es") == "en" else "Configuración del Estudiante" }}{% endblock %}
+
+{% block content %}
+
+{% set ui_lang = selected_language if selected_language else (current_user.language if current_user.language else "es") %}
+
+<div class="card">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap;">
+        <div>
+            <h2 style="margin:0 0 8px 0;">
+                {{ "Student Configuration" if ui_lang == "en" else "Configuración del Estudiante" }}
+            </h2>
+            <p style="margin:0; color:#6b7280;">
+                {{ "Update your personal profile information from your UniTrack student panel." if ui_lang == "en" else "Actualiza la información de tu perfil personal desde tu panel estudiantil de UniTrack." }}
+            </p>
+        </div>
+    </div>
+</div>
+
+{% if profile_message %}
+<div class="card" style="margin-top:20px; border-left:6px solid #16a34a; background:#f0fdf4;">
+    <p style="margin:0; color:#166534; font-weight:600;">
+        {{ profile_message }}
+    </p>
+</div>
+{% endif %}
+
+{% if profile_error %}
+<div class="card" style="margin-top:20px; border-left:6px solid #dc2626; background:#fef2f2;">
+    <p style="margin:0; color:#991b1b; font-weight:600;">
+        {{ profile_error }}
+    </p>
+</div>
+{% endif %}
+
+<!-- PHOTO CARD -->
+<div class="card" style="margin-top:20px;">
+
+    <h3 style="margin-top:0;">{{ "Profile Photo" if ui_lang == "en" else "Foto de Perfil" }}</h3>
+
+    <div style="display:flex; align-items:center; gap:20px; flex-wrap:wrap;">
+
+        {% if current_user.photo_path %}
+            <img
+                src="{{ url_for('static', filename=current_user.photo_path) }}"
+                style="width:110px;height:110px;border-radius:18px;object-fit:cover;border:1px solid #ddd;"
+            >
+        {% else %}
+            <div style="width:110px;height:110px;border-radius:18px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;color:#6b7280;">
+                {{ "No Photo" if ui_lang == "en" else "Sin foto" }}
+            </div>
+        {% endif %}
+
+        <form method="POST"
+              action="{{ url_for('student_views.configuration_update_photo') }}"
+              enctype="multipart/form-data"
+              style="display:flex; gap:12px; flex-wrap:wrap;">
+
+            <input type="file"
+                   name="photo"
+                   accept="image/png,image/jpeg"
+                   required>
+
+            <button type="submit"
+                    style="border:none;padding:10px 16px;border-radius:10px;background:#0ea5e9;color:white;font-weight:700;cursor:pointer;">
+                {{ "Upload / Change Photo" if ui_lang == "en" else "Subir / Cambiar foto" }}
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+<!-- PROFILE FORM -->
+<div class="card" style="margin-top:20px;">
+    <form
+        method="POST"
+        action="{{ url_for('student_views.configuration_update') }}"
+        style="display:flex; flex-direction:column; gap:20px;"
+    >
+        <div
+            style="
+                display:grid;
+                grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));
+                gap:20px;
+            "
+        >
+            <div>
+                <label style="display:block; margin-bottom:8px; font-weight:700;">
+                    {{ "First Name" if ui_lang == "en" else "Nombre" }}
+                </label>
+                <input type="text"
+                       name="first_name"
+                       value="{{ form_data.first_name }}"
+                       required
+                       style="width:100%;padding:12px;border:1px solid #d1d5db;border-radius:12px;">
+            </div>
+
+            <div>
+                <label style="display:block; margin-bottom:8px; font-weight:700;">
+                    {{ "Last Name" if ui_lang == "en" else "Apellido" }}
+                </label>
+                <input type="text"
+                       name="last_name"
+                       value="{{ form_data.last_name }}"
+                       required
+                       style="width:100%;padding:12px;border:1px solid #d1d5db;border-radius:12px;">
+            </div>
+
+            <div>
+                <label style="display:block; margin-bottom:8px; font-weight:700;">
+                    {{ "Username" if ui_lang == "en" else "Matrícula" }}
+                </label>
+                <input type="text"
+                       value="{{ form_data.username }}"
+                       readonly
+                       style="width:100%;padding:12px;border:1px solid #d1d5db;border-radius:12px;background:#f3f4f6;">
+            </div>
+
+            <div>
+                <label style="display:block; margin-bottom:8px; font-weight:700;">
+                    {{ "Email" if ui_lang == "en" else "Correo electrónico" }}
+                </label>
+                <input type="email"
+                       name="email"
+                       value="{{ form_data.email }}"
+                       required
+                       style="width:100%;padding:12px;border:1px solid #d1d5db;border-radius:12px;">
+            </div>
+
+            <div>
+                <label style="display:block; margin-bottom:8px; font-weight:700;">
+                    {{ "Phone" if ui_lang == "en" else "Teléfono" }}
+                </label>
+                <input type="text"
+                       name="phone"
+                       value="{{ form_data.phone }}"
+                       required
+                       style="width:100%;padding:12px;border:1px solid #d1d5db;border-radius:12px;">
+            </div>
+
+            <div>
+                <label style="display:block; margin-bottom:8px; font-weight:700;">
+                    {{ "Language" if ui_lang == "en" else "Idioma" }}
+                </label>
+                <select
+                    name="language"
+                    style="width:100%;padding:12px;border:1px solid #d1d5db;border-radius:12px;background:white;"
+                >
+                    <option value="es" {% if ui_lang == "es" %}selected{% endif %}>
+                        Español
+                    </option>
+                    <option value="en" {% if ui_lang == "en" %}selected{% endif %}>
+                        English
+                    </option>
+                </select>
+            </div>
+
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:12px;">
+            <a href="{{ url_for('student_views.dashboard_page') }}"
+               style="text-decoration:none;padding:12px 18px;border-radius:12px;border:1px solid #d1d5db;background:#fff;color:#374151;font-weight:700;">
+                {{ "Cancel" if ui_lang == "en" else "Cancelar" }}
+            </a>
+
+            <button type="submit"
+                    style="border:none;padding:12px 18px;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#5b21b6);color:white;font-weight:700;cursor:pointer;">
+                {{ "Save Changes" if ui_lang == "en" else "Guardar cambios" }}
+            </button>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

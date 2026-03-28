@@ -1,0 +1,228 @@
+{% extends "docente/docente_base.html" %}
+
+{% block title %}Teacher Dashboard{% endblock %}
+
+{% block page_title %}
+My Classes
+{% endblock %}
+
+{% block content %}
+
+<style>
+
+.dashboard-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(340px,1fr));
+    gap:22px;
+}
+
+.class-card{
+    background:#020617;
+    border:1px solid #1e293b;
+    border-radius:14px;
+    padding:20px;
+}
+
+.class-card h2{
+    color:#38bdf8;
+    margin-top:0;
+    margin-bottom:10px;
+}
+
+.meta{
+    font-size:14px;
+    color:#94a3b8;
+    margin-bottom:15px;
+    line-height:1.6;
+}
+
+.session-box{
+    background:#0f172a;
+    padding:14px;
+    border-radius:10px;
+    margin-bottom:14px;
+    border:1px solid #1e293b;
+}
+
+.session-box p{
+    margin:6px 0;
+}
+
+.summary{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:14px;
+}
+
+.summary div{
+    background:#020617;
+    border:1px solid #1e293b;
+    padding:8px 12px;
+    border-radius:8px;
+    font-size:13px;
+    color:#e5e7eb;
+}
+
+.actions{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:12px;
+    align-items:stretch;
+}
+
+.actions a,
+.actions form{
+    flex:1 1 140px;
+    margin:0;
+}
+
+.actions form{
+    display:flex;
+}
+
+.actions .btn,
+.actions form .btn{
+    width:100%;
+    height:44px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:600;
+    text-decoration:none;
+    box-sizing:border-box;
+    padding:0 16px;
+}
+
+.empty{
+    background:#020617;
+    border:1px solid #1e293b;
+    padding:30px;
+    border-radius:12px;
+}
+
+.status-open{
+    color:#22c55e;
+    font-weight:700;
+}
+
+.status-closed{
+    color:#f59e0b;
+    font-weight:700;
+}
+
+.status-none{
+    color:#94a3b8;
+    font-weight:700;
+}
+
+</style>
+
+{% if dashboard_items and dashboard_items|length > 0 %}
+
+<div class="dashboard-grid">
+
+{% for item in dashboard_items %}
+
+{% set class_group = item.class_group %}
+{% set open_session = item.open_session %}
+{% set last_session = item.last_session %}
+{% set summary = item.attendance_summary %}
+
+<div class="class-card">
+
+    <h2>
+        {{ class_group.subject_name if class_group.subject_name else (class_group.name if class_group.name else "Class") }}
+    </h2>
+
+    <div class="meta">
+        <div><strong>Class ID:</strong> {{ class_group.id }}</div>
+
+        {% if class_group.group_code %}
+        <div><strong>Group:</strong> {{ class_group.group_code }}</div>
+        {% endif %}
+
+        {% if class_group.description %}
+        <div><strong>Description:</strong> {{ class_group.description }}</div>
+        {% endif %}
+    </div>
+
+    <div class="session-box">
+
+        {% if open_session %}
+            <p><span class="status-open">Session OPEN</span></p>
+            <p><strong>Session ID:</strong> {{ open_session.id }}</p>
+            <p><strong>Started:</strong> {{ open_session.start_time if open_session.start_time else "—" }}</p>
+
+        {% elif last_session %}
+            <p><span class="status-closed">No open session</span></p>
+            <p><strong>Last Session ID:</strong> {{ last_session.id }}</p>
+            <p><strong>Last Started:</strong> {{ last_session.start_time if last_session.start_time else "—" }}</p>
+
+        {% else %}
+            <p><span class="status-none">No session created yet</span></p>
+        {% endif %}
+
+        <div class="summary">
+            <div>Total: {{ summary.total_students }}</div>
+            <div>Present: {{ summary.present_count }}</div>
+            <div>Absent: {{ summary.absent_count }}</div>
+            <div>Not Marked: {{ summary.not_marked_count }}</div>
+        </div>
+
+    </div>
+
+    <div class="actions">
+
+        {% if open_session %}
+
+            <a class="btn btn-primary" href="/docente/session/{{ open_session.id }}/roster-page">
+                Manage
+            </a>
+
+            <form method="post" action="/docente/session/{{ open_session.id }}/close">
+                <button type="submit" class="btn btn-danger">
+                    Close
+                </button>
+            </form>
+
+        {% else %}
+
+            <!-- ✅ FIXED HERE -->
+            <a class="btn btn-success" href="/docente/class/{{ class_group.id }}/open-session-form">
+                Open Session
+            </a>
+
+        {% endif %}
+
+        <a class="btn btn-primary" href="{{ url_for('docente_views.docente_session_history_page') }}">
+            History
+        </a>
+
+        {% if last_session and not last_session.is_open %}
+            <form method="post" action="/docente/session/{{ last_session.id }}/reopen">
+                <button type="submit" class="btn btn-primary">
+                    Reopen
+                </button>
+            </form>
+        {% endif %}
+
+    </div>
+
+</div>
+
+{% endfor %}
+
+</div>
+
+{% else %}
+
+<div class="empty">
+    <h2>No classes assigned</h2>
+    <p>Classes will appear here when assigned.</p>
+</div>
+
+{% endif %}
+
+{% endblock %}

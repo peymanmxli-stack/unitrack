@@ -1,0 +1,962 @@
+{% extends "base.html" %}
+
+{% block title %}Class Roster Attendance{% endblock %}
+
+{% block content %}
+
+{#
+docente_roster.html
+
+Teaching idea:
+This page is the teacher's live attendance control screen.
+
+Now this template supports:
+- session analytics
+- review mode for closed sessions
+- roster visualization
+- direct CSV export from UI
+- download confirmation toast
+- live attendance marking
+- live summary updates without full page reload
+- remove student from class directly from roster
+- live empty-state update after last student removal
+- mark all students present from the roster header
+
+Important fix in this version:
+Before, the Present and Absent buttons were only visual buttons.
+They did not send any request to the backend.
+
+Now I connect them to the real attendance route:
+
+POST /attendance/sessions/<session_id>/attendance/mark
+
+Also, the teacher can now remove a student from the class
+without leaving the roster page.
+
+New protection in this version:
+- Remove button is disabled when session is closed
+- Remove button is disabled when the student has locked attendance history
+- Locked history indicator is shown in the UI
+
+New UI polish in this version:
+- Late now counts correctly in attendance percentage
+- current selected attendance button is visually highlighted
+- current selected attendance button is disabled to avoid unnecessary repeat save
+#}
+
+{% set review_mode = session and not session.is_open %}
+
+{% set total = summary.total_students %}
+{% set present = summary.present_count %}
+{% set absent = summary.absent_count %}
+{% set pending = summary.not_marked_count %}
+{% set late = roster | selectattr("attendance_status", "equalto", "late") | list | length %}
+{% set attended = present + late %}
+
+{% set attendance_percent = (attended / total * 100) if total > 0 else 0 %}
+{% set fully_marked = pending == 0 %}
+
+<div class="container mt-4 mb-5">
+
+    <style>
+        .roster-action-btn{
+            min-width:96px;
+            height:40px;
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            font-weight:600;
+            border-radius:10px;
+        }
+
+        .roster-status-badge{
+            min-width:105px;
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+        }
+
+        .roster-save-note{
+            font-size:12px;
+            color:#6c757d;
+            margin-top:4px;
+        }
+
+        .roster-saving{
+            opacity:0.70;
+            pointer-events:none;
+        }
+
+        .roster-row-feedback{
+            font-size:12px;
+            font-weight:600;
+            margin-top:6px;
+        }
+
+        .roster-row-feedback.success{
+            color:#198754;
+        }
+
+        .roster-row-feedback.error{
+            color:#dc3545;
+        }
+
+        .analytics-stat-number{
+            transition:all 0.2s ease;
+        }
+
+        .roster-lock-badge{
+            margin-top:6px;
+            display:inline-flex;
+            align-items:center;
+            gap:6px;
+        }
+
+        .roster-disabled-note{
+            font-size:12px;
+            color:#6c757d;
+            margin-top:6px;
+            font-weight:600;
+        }
+
+        .roster-bulk-btn{
+            min-width:170px;
+        }
+
+        .mark-attendance-btn.active-status{
+            box-shadow:0 0 0 3px rgba(13,110,253,0.18);
+            transform:translateY(-1px);
+        }
+
+        .mark-attendance-btn:disabled.active-status{
+            opacity:1;
+        }
+    </style>
+
+    <div class="roster-hero d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+        <div>
+            <h2>{{ page_title or "Class Roster Attendance" }}</h2>
+
+            <p class="mb-1">
+                {{ class_group.display_name if class_group else "Active Class Session" }}
+            </p>
+
+            <span class="{{ 'session-open' if session and session.is_open else 'session-closed' }}">
+                {{ "Session OPEN" if session and session.is_open else "Session CLOSED" }}
+            </span>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2">
+            {% if session and not review_mode and roster and roster|length > 0 %}
+                <button
+                    type="button"
+                    id="markAllPresentButton"
+                    class="btn btn-success roster-action-btn roster-bulk-btn"
+                    data-session-id="{{ session.id }}"
+                >
+                    Mark All Present
+                </button>
+            {% endif %}
+
+            {% if session %}
+                <a
+                    href="{{ url_for('attendance.export_session_attendance_csv', session_id=session.id) }}"
+                    class="btn btn-outline-success roster-action-btn"
+                    data-export-csv="true"
+                >
+                    Export CSV
+                </a>
+            {% endif %}
+
+            <a
+                href="javascript:history.back()"
+                class="btn btn-outline-secondary roster-action-btn"
+            >
+                Back
+            </a>
+        </div>
+    </div>
+
+    <div
+        id="downloadToast"
+        class="toast align-items-center text-bg-success border-0 position-fixed bottom-0 end-0 m-4"
+        role="alert"
+        aria-live="assertive"
+        aria-atomic="true"
+        style="z-index:1080; min-width:280px;"
+    >
+        <div class="d-flex">
+            <div class="toast-body">
+                Report download started successfully.
+            </div>
+            <button
+                type="button"
+                class="btn-close btn-close-white me-2 m-auto"
+                data-bs-dismiss="toast"
+                aria-label="Close"
+            ></button>
+        </div>
+    </div>
+
+    <div
+        id="saveToast"
+        class="toast align-items-center text-bg-primary border-0 position-fixed bottom-0 end-0 m-4"
+        role="alert"
+        aria-live="assertive"
+        aria-atomic="true"
+        style="z-index:1080; min-width:280px;"
+    >
+        <div class="d-flex">
+            <div class="toast-body" id="saveToastBody">
+                Attendance saved successfully.
+            </div>
+            <button
+                type="button"
+                class="btn-close btn-close-white me-2 m-auto"
+                data-bs-dismiss="toast"
+                aria-label="Close"
+            ></button>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <div class="row text-center">
+
+                <div class="col-md-3 mb-3">
+                    <h6 class="text-muted">Attendance %</h6>
+                    <div
+                        class="fs-3 fw-bold text-primary analytics-stat-number"
+                        id="attendancePercentValue"
+                    >
+                        {{ "%.1f"|format(attendance_percent) }}%
+                    </div>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <h6 class="text-muted">Session Completion</h6>
+                    <div id="sessionCompletionBadge">
+                        {% if fully_marked %}
+                            <span class="badge bg-success fs-6">Fully Marked</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark fs-6">Incomplete</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <h6 class="text-muted">Absence Risk</h6>
+                    <div id="absenceRiskBadge">
+                        {% if absent > (total * 0.4) %}
+                            <span class="badge bg-danger fs-6">High Absence</span>
+                        {% elif absent > (total * 0.2) %}
+                            <span class="badge bg-warning text-dark fs-6">Moderate</span>
+                        {% else %}
+                            <span class="badge bg-success fs-6">Low</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <h6 class="text-muted">Students</h6>
+                    <div
+                        class="fs-4 fw-bold analytics-stat-number"
+                        id="totalStudentsValue"
+                    >
+                        {{ total }}
+                    </div>
+                </div>
+
+            </div>
+
+            <input type="hidden" id="summaryTotalStudents" value="{{ total }}">
+            <input type="hidden" id="summaryPresentCount" value="{{ attended }}">
+            <input type="hidden" id="summaryAbsentCount" value="{{ absent }}">
+            <input type="hidden" id="summaryPendingCount" value="{{ pending }}">
+        </div>
+    </div>
+
+    {% if review_mode %}
+    <div class="alert alert-secondary mb-4">
+        <strong>Review Mode:</strong>
+        This session is closed. Attendance cannot be modified, but you can still export the report.
+    </div>
+    {% endif %}
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3 gap-2">
+                <h5 class="fw-bold mb-0">Student Roster</h5>
+
+                {% if session %}
+                <small class="text-muted">
+                    Session ID: {{ session.id }}
+                </small>
+                {% endif %}
+            </div>
+
+            <div id="rosterTableWrapper" {% if not roster or roster|length == 0 %}style="display:none;"{% endif %}>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+
+                        <thead class="table-light">
+                            <tr>
+                                <th>#</th>
+                                <th>Student</th>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="rosterTableBody">
+
+                        {% for student in roster %}
+                            {% set student_history_locked = student.attendance_history_locked %}
+                            {% set remove_disabled = review_mode or student_history_locked %}
+
+                            <tr
+                                id="rosterRow{{ student.student_id }}"
+                                data-student-id="{{ student.student_id }}"
+                                data-current-status="{{ student.attendance_status if student.attendance_status else 'not_marked' }}"
+                            >
+                                <td>{{ loop.index }}</td>
+
+                                <td><strong>{{ student.student_name }}</strong></td>
+                                <td>{{ student.student_username }}</td>
+                                <td>{{ student.student_email }}</td>
+
+                                <td>
+                                    <div
+                                        id="statusCell{{ student.student_id }}"
+                                        data-status-cell="true"
+                                    >
+                                        {% if student.attendance_status == "present" %}
+                                            <span class="badge bg-success roster-status-badge">Present</span>
+                                        {% elif student.attendance_status == "late" %}
+                                            <span class="badge bg-warning text-dark roster-status-badge">Late</span>
+                                        {% elif student.attendance_status == "absent" %}
+                                            <span class="badge bg-danger roster-status-badge">Absent</span>
+                                        {% else %}
+                                            <span class="badge bg-warning text-dark roster-status-badge">Not Marked</span>
+                                        {% endif %}
+                                    </div>
+
+                                    {% if student_history_locked %}
+                                        <div class="roster-lock-badge">
+                                            <span class="badge bg-secondary">Locked History</span>
+                                        </div>
+                                    {% endif %}
+
+                                    <div
+                                        id="rowFeedback{{ student.student_id }}"
+                                        class="roster-row-feedback"
+                                        style="display:none;"
+                                    ></div>
+                                </td>
+
+                                <td>
+                                    {% if not review_mode and session %}
+                                        <div class="d-flex flex-wrap gap-2">
+                                            <button
+                                                class="btn btn-success roster-action-btn mark-attendance-btn"
+                                                data-session-id="{{ session.id }}"
+                                                data-student-id="{{ student.student_id }}"
+                                                data-status="present"
+                                                type="button"
+                                            >
+                                                Present
+                                            </button>
+
+                                            <button
+                                                class="btn btn-warning roster-action-btn mark-attendance-btn"
+                                                data-session-id="{{ session.id }}"
+                                                data-student-id="{{ student.student_id }}"
+                                                data-status="late"
+                                                type="button"
+                                            >
+                                                Late
+                                            </button>
+
+                                            <button
+                                                class="btn btn-danger roster-action-btn mark-attendance-btn"
+                                                data-session-id="{{ session.id }}"
+                                                data-student-id="{{ student.student_id }}"
+                                                data-status="absent"
+                                                type="button"
+                                            >
+                                                Absent
+                                            </button>
+
+                                            <button
+                                                class="btn btn-outline-danger roster-action-btn remove-student-btn"
+                                                data-class-id="{{ class_group.id }}"
+                                                data-student-id="{{ student.student_id }}"
+                                                type="button"
+                                                {% if remove_disabled %}disabled{% endif %}
+                                                title="{% if review_mode %}Cannot remove because the session is closed.{% elif student_history_locked %}Cannot remove because this student has locked attendance history.{% else %}Remove student from class{% endif %}"
+                                            >
+                                                Remove
+                                            </button>
+                                        </div>
+
+                                        {% if student_history_locked %}
+                                            <div class="roster-disabled-note">
+                                                Remove disabled: locked attendance history.
+                                            </div>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-muted">Locked</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+
+                        </tbody>
+
+                    </table>
+                </div>
+            </div>
+
+            <div
+                id="rosterEmptyState"
+                class="alert alert-light border"
+                {% if roster and roster|length > 0 %}style="display:none;"{% endif %}
+            >
+                No students are currently available in this roster.
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const exportButtons = document.querySelectorAll('[data-export-csv="true"]');
+    const downloadToastElement = document.getElementById("downloadToast");
+
+    if (exportButtons.length && downloadToastElement && typeof bootstrap !== "undefined") {
+        const downloadToast = new bootstrap.Toast(downloadToastElement, {
+            delay: 2200
+        });
+
+        exportButtons.forEach(function (button) {
+            button.addEventListener("click", function () {
+                downloadToast.show();
+            });
+        });
+    }
+
+    const saveToastElement = document.getElementById("saveToast");
+    const saveToastBody = document.getElementById("saveToastBody");
+    let saveToast = null;
+
+    if (saveToastElement && typeof bootstrap !== "undefined") {
+        saveToast = new bootstrap.Toast(saveToastElement, {
+            delay: 2200
+        });
+    }
+
+    const markButtons = document.querySelectorAll(".mark-attendance-btn");
+    const removeButtons = document.querySelectorAll(".remove-student-btn");
+    const markAllPresentButton = document.getElementById("markAllPresentButton");
+
+    const totalStudentsInput = document.getElementById("summaryTotalStudents");
+    const presentCountInput = document.getElementById("summaryPresentCount");
+    const absentCountInput = document.getElementById("summaryAbsentCount");
+    const pendingCountInput = document.getElementById("summaryPendingCount");
+
+    const attendancePercentValue = document.getElementById("attendancePercentValue");
+    const sessionCompletionBadge = document.getElementById("sessionCompletionBadge");
+    const absenceRiskBadge = document.getElementById("absenceRiskBadge");
+    const totalStudentsValue = document.getElementById("totalStudentsValue");
+
+    const rosterTableWrapper = document.getElementById("rosterTableWrapper");
+    const rosterTableBody = document.getElementById("rosterTableBody");
+    const rosterEmptyState = document.getElementById("rosterEmptyState");
+
+    function getSummaryState() {
+        return {
+            total: parseInt(totalStudentsInput.value || "0", 10),
+            present: parseInt(presentCountInput.value || "0", 10),
+            absent: parseInt(absentCountInput.value || "0", 10),
+            pending: parseInt(pendingCountInput.value || "0", 10)
+        };
+    }
+
+    function saveSummaryState(state) {
+        totalStudentsInput.value = state.total;
+        presentCountInput.value = state.present;
+        absentCountInput.value = state.absent;
+        pendingCountInput.value = state.pending;
+    }
+
+    function renderStatusBadge(statusCell, statusValue) {
+        if (!statusCell) {
+            return;
+        }
+
+        if (statusValue === "present") {
+            statusCell.innerHTML = '<span class="badge bg-success roster-status-badge">Present</span>';
+            return;
+        }
+
+        if (statusValue === "late") {
+            statusCell.innerHTML = '<span class="badge bg-warning text-dark roster-status-badge">Late</span>';
+            return;
+        }
+
+        if (statusValue === "absent") {
+            statusCell.innerHTML = '<span class="badge bg-danger roster-status-badge">Absent</span>';
+            return;
+        }
+
+        statusCell.innerHTML = '<span class="badge bg-warning text-dark roster-status-badge">Not Marked</span>';
+    }
+
+    function renderSummary(state) {
+        const attendancePercent = state.total > 0
+            ? ((state.present / state.total) * 100).toFixed(1)
+            : "0.0";
+
+        if (attendancePercentValue) {
+            attendancePercentValue.textContent = attendancePercent + "%";
+        }
+
+        if (totalStudentsValue) {
+            totalStudentsValue.textContent = state.total;
+        }
+
+        if (sessionCompletionBadge) {
+            if (state.pending === 0) {
+                sessionCompletionBadge.innerHTML = '<span class="badge bg-success fs-6">Fully Marked</span>';
+            } else {
+                sessionCompletionBadge.innerHTML = '<span class="badge bg-warning text-dark fs-6">Incomplete</span>';
+            }
+        }
+
+        if (absenceRiskBadge) {
+            if (state.absent > (state.total * 0.4)) {
+                absenceRiskBadge.innerHTML = '<span class="badge bg-danger fs-6">High Absence</span>';
+            } else if (state.absent > (state.total * 0.2)) {
+                absenceRiskBadge.innerHTML = '<span class="badge bg-warning text-dark fs-6">Moderate</span>';
+            } else {
+                absenceRiskBadge.innerHTML = '<span class="badge bg-success fs-6">Low</span>';
+            }
+        }
+    }
+
+    function updateSummaryForStatusChange(previousStatus, newStatus) {
+        const state = getSummaryState();
+
+        if (previousStatus === "present" || previousStatus === "late") {
+            state.present -= 1;
+        } else if (previousStatus === "absent") {
+            state.absent -= 1;
+        } else {
+            state.pending -= 1;
+        }
+
+        if (newStatus === "present" || newStatus === "late") {
+            state.present += 1;
+        } else if (newStatus === "absent") {
+            state.absent += 1;
+        } else {
+            state.pending += 1;
+        }
+
+        if (state.present < 0) state.present = 0;
+        if (state.absent < 0) state.absent = 0;
+        if (state.pending < 0) state.pending = 0;
+
+        saveSummaryState(state);
+        renderSummary(state);
+    }
+
+    function refreshRosterEmptyState() {
+        if (!rosterTableBody || !rosterTableWrapper || !rosterEmptyState) {
+            return;
+        }
+
+        const remainingRows = rosterTableBody.querySelectorAll("tr");
+
+        if (remainingRows.length === 0) {
+            rosterTableWrapper.style.display = "none";
+            rosterEmptyState.style.display = "block";
+
+            if (markAllPresentButton) {
+                markAllPresentButton.style.display = "none";
+            }
+        } else {
+            rosterTableWrapper.style.display = "block";
+            rosterEmptyState.style.display = "none";
+
+            if (markAllPresentButton) {
+                markAllPresentButton.style.display = "inline-flex";
+            }
+        }
+    }
+
+    function renumberRosterRows() {
+        if (!rosterTableBody) {
+            return;
+        }
+
+        const rows = rosterTableBody.querySelectorAll("tr");
+
+        rows.forEach(function (row, index) {
+            const firstCell = row.querySelector("td");
+
+            if (firstCell) {
+                firstCell.textContent = index + 1;
+            }
+        });
+    }
+
+    function normalizeRemoveErrorMessage(message) {
+        const cleanMessage = (message || "").trim();
+
+        if (!cleanMessage || cleanMessage.toLowerCase() === "error") {
+            return "Could not remove the student. Please try again.";
+        }
+
+        if (cleanMessage === "This student cannot be removed because attendance records already exist.") {
+            return "This student cannot be removed because attendance records already exist for this class.";
+        }
+
+        if (cleanMessage === "Enrollment not found") {
+            return "This class enrollment was not found.";
+        }
+
+        if (cleanMessage === "Student is already removed from this class") {
+            return "This student has already been removed from the class.";
+        }
+
+        if (cleanMessage === "Class group not found") {
+            return "This class was not found.";
+        }
+
+        if (cleanMessage === "You do not have permission to manage this class") {
+            return "You do not have permission to manage this class.";
+        }
+
+        return cleanMessage;
+    }
+
+    function showRowFeedback(studentId, message, type) {
+        const feedback = document.getElementById("rowFeedback" + studentId);
+
+        if (!feedback) {
+            return;
+        }
+
+        feedback.textContent = message;
+        feedback.className = "roster-row-feedback " + type;
+        feedback.style.display = "block";
+
+        window.setTimeout(function () {
+            feedback.style.display = "none";
+        }, 2500);
+    }
+
+    function setRowLoading(row, isLoading) {
+        if (!row) {
+            return;
+        }
+
+        if (isLoading) {
+            row.classList.add("roster-saving");
+        } else {
+            row.classList.remove("roster-saving");
+        }
+    }
+
+    function setBulkMarkAllLoading(isLoading) {
+        if (!markAllPresentButton) {
+            return;
+        }
+
+        markAllPresentButton.disabled = isLoading;
+        markAllPresentButton.textContent = isLoading ? "Saving..." : "Mark All Present";
+    }
+
+    function refreshRowActionButtons(row, currentStatus) {
+        if (!row) {
+            return;
+        }
+
+        const actionButtons = row.querySelectorAll(".mark-attendance-btn");
+
+        actionButtons.forEach(function (button) {
+            const buttonStatus = button.dataset.status;
+
+            button.classList.remove("active-status");
+            button.disabled = false;
+
+            if (buttonStatus === currentStatus && currentStatus !== "not_marked") {
+                button.classList.add("active-status");
+                button.disabled = true;
+            }
+        });
+    }
+
+    async function markAttendance(button) {
+        const sessionId = button.dataset.sessionId;
+        const studentId = button.dataset.studentId;
+        const newStatus = button.dataset.status;
+
+        const row = document.getElementById("rosterRow" + studentId);
+        const statusCell = document.getElementById("statusCell" + studentId);
+
+        if (!row || !statusCell) {
+            return;
+        }
+
+        const previousStatus = row.dataset.currentStatus || "not_marked";
+
+        if (previousStatus === newStatus) {
+            refreshRowActionButtons(row, newStatus);
+            return;
+        }
+
+        setRowLoading(row, true);
+
+        try {
+            const response = await fetch(`/attendance/sessions/${sessionId}/attendance/mark`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    student_id: parseInt(studentId, 10),
+                    status: newStatus,
+                    notes: ""
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok || data.success === false) {
+                throw new Error(data.error || "Attendance save failed.");
+            }
+
+            row.dataset.currentStatus = newStatus;
+            renderStatusBadge(statusCell, newStatus);
+            refreshRowActionButtons(row, newStatus);
+            updateSummaryForStatusChange(previousStatus, newStatus);
+            showRowFeedback(studentId, "Saved successfully", "success");
+
+            if (saveToast && saveToastBody) {
+                saveToastBody.textContent = "Attendance saved successfully.";
+                saveToast.show();
+            }
+
+        } catch (error) {
+            showRowFeedback(studentId, error.message || "Save failed", "error");
+
+            if (saveToast && saveToastBody) {
+                saveToastBody.textContent = error.message || "Attendance save failed.";
+                saveToast.show();
+            }
+        } finally {
+            setRowLoading(row, false);
+        }
+    }
+
+    async function markAllPresent() {
+        if (!markAllPresentButton || !rosterTableBody) {
+            return;
+        }
+
+        const rows = Array.from(rosterTableBody.querySelectorAll("tr"));
+
+        if (rows.length === 0) {
+            return;
+        }
+
+        const sessionId = markAllPresentButton.dataset.sessionId;
+
+        if (!sessionId) {
+            return;
+        }
+
+        setBulkMarkAllLoading(true);
+
+        let hasAnySuccess = false;
+        let hasAnyError = false;
+
+        for (const row of rows) {
+            const studentId = row.dataset.studentId;
+            const statusCell = document.getElementById("statusCell" + studentId);
+
+            if (!studentId || !statusCell) {
+                continue;
+            }
+
+            const previousStatus = row.dataset.currentStatus || "not_marked";
+
+            if (previousStatus === "present") {
+                refreshRowActionButtons(row, "present");
+                continue;
+            }
+
+            setRowLoading(row, true);
+
+            try {
+                const response = await fetch(`/attendance/sessions/${sessionId}/attendance/mark`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        student_id: parseInt(studentId, 10),
+                        status: "present",
+                        notes: ""
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || data.success === false) {
+                    throw new Error(data.error || "Attendance save failed.");
+                }
+
+                row.dataset.currentStatus = "present";
+                renderStatusBadge(statusCell, "present");
+                refreshRowActionButtons(row, "present");
+                updateSummaryForStatusChange(previousStatus, "present");
+                showRowFeedback(studentId, "Saved successfully", "success");
+                hasAnySuccess = true;
+
+            } catch (error) {
+                showRowFeedback(studentId, error.message || "Save failed", "error");
+                hasAnyError = true;
+            } finally {
+                setRowLoading(row, false);
+            }
+        }
+
+        if (saveToast && saveToastBody) {
+            if (hasAnySuccess && !hasAnyError) {
+                saveToastBody.textContent = "All possible students were marked present.";
+            } else if (hasAnySuccess && hasAnyError) {
+                saveToastBody.textContent = "Some students were marked present, but some saves failed.";
+            } else {
+                saveToastBody.textContent = "No changes were needed.";
+            }
+
+            saveToast.show();
+        }
+
+        setBulkMarkAllLoading(false);
+    }
+
+    async function removeStudent(button) {
+        if (button.disabled) {
+            return;
+        }
+
+        const classId = button.dataset.classId;
+        const studentId = button.dataset.studentId;
+
+        const row = document.getElementById("rosterRow" + studentId);
+
+        if (!row) {
+            return;
+        }
+
+        if (!confirm("Remove this student from the class?")) {
+            return;
+        }
+
+        const previousStatus = row.dataset.currentStatus || "not_marked";
+
+        setRowLoading(row, true);
+
+        try {
+            const response = await fetch(`/enrollment/classes/${classId}/students/${studentId}`, {
+                method: "DELETE"
+            });
+
+            const data = await response.json();
+            const rawMessage = data.error || data.message || "Error";
+
+            if (!response.ok || data.success === false) {
+                throw new Error(normalizeRemoveErrorMessage(rawMessage));
+            }
+
+            const state = getSummaryState();
+
+            state.total -= 1;
+
+            if (previousStatus === "present" || previousStatus === "late") {
+                state.present -= 1;
+            } else if (previousStatus === "absent") {
+                state.absent -= 1;
+            } else {
+                state.pending -= 1;
+            }
+
+            if (state.total < 0) state.total = 0;
+            if (state.present < 0) state.present = 0;
+            if (state.absent < 0) state.absent = 0;
+            if (state.pending < 0) state.pending = 0;
+
+            saveSummaryState(state);
+            renderSummary(state);
+
+            row.remove();
+            refreshRosterEmptyState();
+            renumberRosterRows();
+
+            if (saveToast && saveToastBody) {
+                saveToastBody.textContent = "Student removed from class.";
+                saveToast.show();
+            }
+
+        } catch (error) {
+            const finalMessage = normalizeRemoveErrorMessage(error.message);
+            showRowFeedback(studentId, finalMessage, "error");
+
+            if (saveToast && saveToastBody) {
+                saveToastBody.textContent = finalMessage;
+                saveToast.show();
+            }
+        } finally {
+            setRowLoading(row, false);
+        }
+    }
+
+    markButtons.forEach(function (button) {
+        button.addEventListener("click", function () {
+            markAttendance(button);
+        });
+    });
+
+    removeButtons.forEach(function (button) {
+        button.addEventListener("click", function () {
+            removeStudent(button);
+        });
+    });
+
+    if (markAllPresentButton) {
+        markAllPresentButton.addEventListener("click", function () {
+            markAllPresent();
+        });
+    }
+
+    document.querySelectorAll("#rosterTableBody tr").forEach(function (row) {
+        const currentStatus = row.dataset.currentStatus || "not_marked";
+        refreshRowActionButtons(row, currentStatus);
+    });
+
+    renderSummary(getSummaryState());
+    refreshRosterEmptyState();
+    renumberRosterRows();
+});
+</script>
+
+{% endblock %}

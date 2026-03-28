@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="UTF-8">
+    <title>{% block title %}UniTrack Teacher{% endblock %}</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!--
+    base.html
+
+    Teaching idea:
+    This is the shared layout for teacher-facing pages.
+
+    Important:
+    Because these pages live inside the docente_views blueprint,
+    all url_for() calls must use the FULL endpoint name:
+
+    docente_views.<function_name>
+
+    Example:
+    docente_views.docente_dashboard_page
+    -->
+
+    <style>
+
+        body{
+            margin:0;
+            font-family:Segoe UI, Arial, sans-serif;
+            background:#0f172a;
+            color:#e5e7eb;
+        }
+
+        .layout{
+            display:flex;
+            min-height:100vh;
+        }
+
+        /* SIDEBAR */
+        .sidebar{
+            width:240px;
+            background:#020617;
+            border-right:1px solid #1e293b;
+            padding:25px;
+        }
+
+        .logo{
+            font-size:22px;
+            font-weight:bold;
+            color:#38bdf8;
+            margin-bottom:30px;
+        }
+
+        .nav-link{
+            display:block;
+            padding:12px;
+            margin-bottom:8px;
+            border-radius:8px;
+            text-decoration:none;
+            color:#94a3b8;
+            transition:.2s;
+        }
+
+        .nav-link:hover{
+            background:#0f172a;
+            color:#fff;
+        }
+
+        /* MAIN AREA */
+        .main{
+            flex:1;
+            display:flex;
+            flex-direction:column;
+            min-width:0;
+        }
+
+        .topbar{
+            height:70px;
+            border-bottom:1px solid #1e293b;
+            display:flex;
+            align-items:center;
+            padding:0 25px;
+            justify-content:space-between;
+            background:#020617;
+        }
+
+        .page-title{
+            font-size:22px;
+            font-weight:600;
+        }
+
+        .content{
+            padding:30px;
+            overflow:auto;
+        }
+
+        .card{
+            background:#020617;
+            padding:20px;
+            border-radius:10px;
+            border:1px solid #1e293b;
+            margin-bottom:20px;
+        }
+
+        .btn{
+            padding:10px 18px;
+            border-radius:8px;
+            border:none;
+            cursor:pointer;
+            font-weight:600;
+        }
+
+        .btn-primary{
+            background:#38bdf8;
+            color:black;
+        }
+
+        .btn-danger{
+            background:#ef4444;
+            color:white;
+        }
+
+        .btn-success{
+            background:#22c55e;
+            color:black;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<div class="layout">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+
+        <div class="logo">UniTrack</div>
+
+        <a class="nav-link" href="{{ url_for('docente_views.docente_dashboard_page') }}">
+            Dashboard
+        </a>
+
+        <a class="nav-link" href="{{ url_for('docente_views.docente_session_history_page') }}">
+            Session History
+        </a>
+
+        <a class="nav-link" href="{{ url_for('auth.logout') }}">
+            Logout
+        </a>
+
+    </div>
+
+    <!-- MAIN -->
+    <div class="main">
+
+        <div class="topbar">
+            <div class="page-title">
+                {% block page_title %}Teacher Panel{% endblock %}
+            </div>
+
+            <div>
+                {{ current_user.first_name }}
+            </div>
+        </div>
+
+        <div class="content">
+            {% block content %}{% endblock %}
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>

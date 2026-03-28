@@ -1,0 +1,205 @@
+{% extends "student_base.html" %}
+
+{% block title %}Historial de Asistencia{% endblock %}
+
+{% block content %}
+
+<div class="card">
+    <h2 class="section-title">Historial de Asistencia</h2>
+    <p class="section-subtitle">
+        Consulta tus registros académicos de asistencia por clase y fecha.
+    </p>
+</div>
+
+<form method="GET" action="{{ url_for('student_views.attendance_history_page') }}">
+
+<div class="filter-card">
+
+    <div class="filter-grid">
+
+        <div>
+            <label class="filter-label">Fecha</label>
+            <input
+                type="text"
+                name="date"
+                value="{{ selected_date or '' }}"
+                placeholder="Mes/Día/Año"
+                class="filter-input"
+            >
+        </div>
+
+        <div>
+            <label class="filter-label">Clase</label>
+            <select name="class_name" class="filter-select">
+                <option value="">Seleccionar clase</option>
+
+                {% for c in class_options %}
+                <option value="{{ c }}"
+                    {% if selected_class_name == c %}selected{% endif %}
+                >
+                    {{ c }}
+                </option>
+                {% endfor %}
+
+            </select>
+        </div>
+
+        <div>
+            <button type="submit" class="filter-button">
+                Buscar
+            </button>
+        </div>
+
+    </div>
+
+    <div style="margin-top:14px; display:flex; justify-content:flex-end;">
+        <a
+            href="{{ url_for('student_views.attendance_history_page') }}"
+            style="
+                display:inline-block;
+                padding:10px 16px;
+                border-radius:12px;
+                text-decoration:none;
+                font-weight:800;
+                background:rgba(255,255,255,0.14);
+                color:white;
+                border:1px solid rgba(255,255,255,0.18);
+            "
+        >
+            Limpiar filtros
+        </a>
+    </div>
+
+</div>
+
+</form>
+
+<div class="stats-grid">
+
+    <div class="stat-card">
+        <div class="stat-label">Asistencia (%)</div>
+
+        <div class="stat-value">
+
+            {% if attendance_percentage_color == "green" %}
+                <span class="status-badge status-green">
+                    {{ attendance_percentage }} %
+                </span>
+
+            {% elif attendance_percentage_color == "yellow" %}
+                <span class="status-badge status-yellow">
+                    {{ attendance_percentage }} %
+                </span>
+
+            {% else %}
+                <span class="status-badge status-red">
+                    {{ attendance_percentage }} %
+                </span>
+            {% endif %}
+
+        </div>
+
+        <div class="stat-note">
+            Porcentaje basado en los filtros aplicados
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">Presentes</div>
+        <div class="stat-value">{{ present_count or 0 }}</div>
+        <div class="stat-note">
+            Clases asistidas correctamente
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">Tardanzas</div>
+        <div class="stat-value">{{ late_count or 0 }}</div>
+        <div class="stat-note">
+            Registros con llegada tarde
+        </div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">Ausencias</div>
+        <div class="stat-value">{{ absent_count or 0 }}</div>
+        <div class="stat-note">
+            Total de clases no asistidas
+        </div>
+    </div>
+
+</div>
+
+<div class="table-card">
+
+<table class="history-table">
+
+<thead>
+<tr>
+<th>#</th>
+<th>Fecha</th>
+<th>Hora</th>
+<th>Clase</th>
+<th>Docente</th>
+<th>Estado</th>
+</tr>
+</thead>
+
+<tbody>
+
+{% if attendance_records and attendance_records|length > 0 %}
+
+{% for r in attendance_records %}
+<tr>
+
+<td>{{ r.row }}</td>
+<td>{{ r.date or "--" }}</td>
+<td>{{ r.time or "--" }}</td>
+<td>{{ r.class_display_name if r.class_display_name else (r.class_name or "--") }}</td>
+<td>{{ r.teacher_name or "--" }}</td>
+
+<td>
+
+{% if r.status == "Present" %}
+<span class="status-badge status-green">
+Presente
+</span>
+
+{% elif r.status == "Late" %}
+<span class="status-badge status-yellow">
+Tarde
+</span>
+
+{% elif r.status == "Absent" %}
+<span class="status-badge status-red">
+Ausente
+</span>
+
+{% else %}
+<span class="status-badge status-red">
+{{ r.status or "Sin estado" }}
+</span>
+{% endif %}
+
+</td>
+
+</tr>
+{% endfor %}
+
+{% else %}
+
+<tr>
+<td colspan="6" style="text-align:center; padding:30px;">
+No hay registros para los filtros seleccionados.
+</td>
+</tr>
+
+{% endif %}
+
+</tbody>
+
+</table>
+
+</div>
+
+{% endblock %}

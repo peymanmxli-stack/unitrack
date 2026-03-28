@@ -1,0 +1,468 @@
+{% extends "student_base.html" %}
+
+{% block title %}Configuración{% endblock %}
+
+{% block content %}
+
+{% set ui_lang = form_data.language if form_data and form_data.language else (current_user.language if current_user.language else "es") %}
+
+<div class="card">
+    <h2 class="section-title">
+        {{ "Configuration" if ui_lang == "en" else "Configuración" }}
+    </h2>
+    <p class="section-subtitle">
+        {{ "Update your personal information, security, preferences, and profile image." if ui_lang == "en" else "Actualiza tu información personal, seguridad, preferencias e imagen de perfil." }}
+    </p>
+</div>
+
+{% if profile_message %}
+<div class="card" style="background:#ecfdf5; border:1px solid #bbf7d0;">
+    <p style="margin:0; color:#166534; font-weight:700;">
+        {{ profile_message }}
+    </p>
+</div>
+{% endif %}
+
+{% if profile_error %}
+<div class="card" style="background:#fef2f2; border:1px solid #fecaca;">
+    <p style="margin:0; color:#991b1b; font-weight:700;">
+        {{ profile_error }}
+    </p>
+</div>
+{% endif %}
+
+<div class="card" style="background:#ffffff; border:1px solid #dbe4f0;">
+
+    <div style="display:grid; grid-template-columns:320px 1fr; gap:24px; align-items:start;">
+
+        <!-- AVATAR / PREVIEW -->
+        <div style="background:#f4f7ff; border:1px solid #dbe4f0; border-radius:20px; padding:22px;">
+
+            <h3 style="margin:0 0 18px 0; color:#081a43;">
+                {{ "Profile Photo" if ui_lang == "en" else "Foto de perfil" }}
+            </h3>
+
+            <div style="display:flex; justify-content:center; margin-bottom:16px;">
+                {% if current_user.photo_path %}
+                    <img
+                        id="avatarPreview"
+                        src="{{ url_for('static', filename=current_user.photo_path) }}"
+                        alt="Avatar Preview"
+                        style="
+                            width:190px;
+                            height:190px;
+                            border-radius:50%;
+                            object-fit:cover;
+                            border:4px solid #ffffff;
+                            box-shadow:0 12px 28px rgba(0,0,0,0.12);
+                            background:#ffffff;
+                        "
+                    >
+                {% else %}
+                    <img
+                        id="avatarPreview"
+                        src="{{ url_for('static', filename='img/unitrack_logo.png') }}"
+                        alt="Avatar Preview"
+                        style="
+                            width:190px;
+                            height:190px;
+                            border-radius:50%;
+                            object-fit:cover;
+                            border:4px solid #ffffff;
+                            box-shadow:0 12px 28px rgba(0,0,0,0.12);
+                            background:#ffffff;
+                        "
+                    >
+                {% endif %}
+            </div>
+
+            <div style="margin-bottom:10px; font-size:14px; font-weight:800; color:#334155;">
+                {{ "Preview of your new photo" if ui_lang == "en" else "Vista previa de tu nueva foto" }}
+            </div>
+
+            <form
+                method="POST"
+                action="{{ url_for('student_views.configuration_update_photo') }}"
+                enctype="multipart/form-data"
+            >
+                <input
+                    type="file"
+                    id="avatarInput"
+                    name="photo"
+                    accept="image/*"
+                    style="
+                        width:100%;
+                        padding:12px;
+                        border-radius:12px;
+                        border:1px solid #cbd5e1;
+                        background:#ffffff;
+                    "
+                >
+
+                <p style="margin:14px 0 14px 0; font-size:13px; color:#64748b; line-height:1.5;">
+                    {{ "Select a new image to preview how it will look before saving." if ui_lang == "en" else "Selecciona una imagen nueva para ver cómo se verá antes de guardar." }}
+                </p>
+
+                <button
+                    type="submit"
+                    style="
+                        width:100%;
+                        min-height:48px;
+                        border:none;
+                        border-radius:12px;
+                        background:linear-gradient(90deg,#0ea5e9,#38bdf8);
+                        color:white;
+                        font-size:15px;
+                        font-weight:800;
+                        cursor:pointer;
+                        box-shadow:0 10px 24px rgba(14,165,233,0.24);
+                    "
+                >
+                    {{ "Upload Photo" if ui_lang == "en" else "Subir foto" }}
+                </button>
+            </form>
+        </div>
+
+        <!-- MAIN SETTINGS -->
+        <div style="display:flex; flex-direction:column; gap:22px;">
+
+            <form
+                method="POST"
+                action="{{ url_for('student_views.configuration_update') }}"
+            >
+
+                <!-- CONTACT -->
+                <div style="background:#f4f7ff; border:1px solid #dbe4f0; border-radius:20px; padding:22px; margin-bottom:22px;">
+                    <h3 style="margin:0 0 18px 0; color:#081a43;">
+                        {{ "Contact Information" if ui_lang == "en" else "Información de contacto" }}
+                    </h3>
+
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:18px;">
+
+                        <div>
+                            <label style="display:block; margin-bottom:8px; font-size:14px; font-weight:800; color:#334155;">
+                                {{ "First Name" if ui_lang == "en" else "Nombre" }}
+                            </label>
+                            <input
+                                type="text"
+                                name="first_name"
+                                value="{{ form_data.first_name if form_data else '' }}"
+                                style="
+                                    width:100%;
+                                    min-height:48px;
+                                    padding:12px 14px;
+                                    border-radius:12px;
+                                    border:1px solid #cbd5e1;
+                                    background:#ffffff;
+                                    color:#0f172a;
+                                    font-size:15px;
+                                    outline:none;
+                                "
+                            >
+                        </div>
+
+                        <div>
+                            <label style="display:block; margin-bottom:8px; font-size:14px; font-weight:800; color:#334155;">
+                                {{ "Last Name" if ui_lang == "en" else "Apellido" }}
+                            </label>
+                            <input
+                                type="text"
+                                name="last_name"
+                                value="{{ form_data.last_name if form_data else '' }}"
+                                style="
+                                    width:100%;
+                                    min-height:48px;
+                                    padding:12px 14px;
+                                    border-radius:12px;
+                                    border:1px solid #cbd5e1;
+                                    background:#ffffff;
+                                    color:#0f172a;
+                                    font-size:15px;
+                                    outline:none;
+                                "
+                            >
+                        </div>
+
+                        <div>
+                            <label style="display:block; margin-bottom:8px; font-size:14px; font-weight:800; color:#334155;">
+                                {{ "Username" if ui_lang == "en" else "Matrícula" }}
+                            </label>
+                            <input
+                                type="text"
+                                value="{{ form_data.username if form_data else '' }}"
+                                readonly
+                                style="
+                                    width:100%;
+                                    min-height:48px;
+                                    padding:12px 14px;
+                                    border-radius:12px;
+                                    border:1px solid #cbd5e1;
+                                    background:#e2e8f0;
+                                    color:#475569;
+                                    font-size:15px;
+                                    outline:none;
+                                "
+                            >
+                        </div>
+
+                        <div>
+                            <label style="display:block; margin-bottom:8px; font-size:14px; font-weight:800; color:#334155;">
+                                {{ "Email" if ui_lang == "en" else "Correo electrónico" }}
+                            </label>
+                            <input
+                                type="email"
+                                name="email"
+                                value="{{ form_data.email if form_data else '' }}"
+                                style="
+                                    width:100%;
+                                    min-height:48px;
+                                    padding:12px 14px;
+                                    border-radius:12px;
+                                    border:1px solid #cbd5e1;
+                                    background:#ffffff;
+                                    color:#0f172a;
+                                    font-size:15px;
+                                    outline:none;
+                                "
+                            >
+                        </div>
+
+                        <div>
+                            <label style="display:block; margin-bottom:8px; font-size:14px; font-weight:800; color:#334155;">
+                                {{ "Phone Number" if ui_lang == "en" else "Número de teléfono" }}
+                            </label>
+                            <input
+                                type="text"
+                                name="phone"
+                                value="{{ form_data.phone if form_data else '' }}"
+                                style="
+                                    width:100%;
+                                    min-height:48px;
+                                    padding:12px 14px;
+                                    border-radius:12px;
+                                    border:1px solid #cbd5e1;
+                                    background:#ffffff;
+                                    color:#0f172a;
+                                    font-size:15px;
+                                    outline:none;
+                                "
+                            >
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- SECURITY -->
+                <div style="background:#f4f7ff; border:1px solid #dbe4f0; border-radius:20px; padding:22px; margin-bottom:22px;">
+                    <h3 style="margin:0 0 18px 0; color:#081a43;">
+                        {{ "Security" if ui_lang == "en" else "Seguridad" }}
+                    </h3>
+
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:18px;">
+
+                        <div style="grid-column:1 / -1;">
+                            <label style="display:block; margin-bottom:8px; font-size:14px; font-weight:800; color:#334155;">
+                                {{ "Current Password" if ui_lang == "en" else "Contraseña actual" }}
+                            </label>
+                            <input
+                                type="password"
+                                name="current_password"
+                                class="password-field"
+                                style="
+                                    width:100%;
+                                    min-height:48px;
+                                    padding:12px 14px;
+                                    border-radius:12px;
+                                    border:1px solid #cbd5e1;
+                                    background:#ffffff;
+                                    color:#0f172a;
+                                    font-size:15px;
+                                    outline:none;
+                                "
+                            >
+                        </div>
+
+                        <div>
+                            <label style="display:block; margin-bottom:8px; font-size:14px; font-weight:800; color:#334155;">
+                                {{ "New Password" if ui_lang == "en" else "Nueva contraseña" }}
+                            </label>
+                            <input
+                                type="password"
+                                name="new_password"
+                                class="password-field"
+                                style="
+                                    width:100%;
+                                    min-height:48px;
+                                    padding:12px 14px;
+                                    border-radius:12px;
+                                    border:1px solid #cbd5e1;
+                                    background:#ffffff;
+                                    color:#0f172a;
+                                    font-size:15px;
+                                    outline:none;
+                                "
+                            >
+                        </div>
+
+                        <div>
+                            <label style="display:block; margin-bottom:8px; font-size:14px; font-weight:800; color:#334155;">
+                                {{ "Confirm New Password" if ui_lang == "en" else "Confirmar nueva contraseña" }}
+                            </label>
+                            <input
+                                type="password"
+                                name="confirm_new_password"
+                                class="password-field"
+                                style="
+                                    width:100%;
+                                    min-height:48px;
+                                    padding:12px 14px;
+                                    border-radius:12px;
+                                    border:1px solid #cbd5e1;
+                                    background:#ffffff;
+                                    color:#0f172a;
+                                    font-size:15px;
+                                    outline:none;
+                                "
+                            >
+                        </div>
+
+                    </div>
+
+                    <div style="margin-top:14px; display:flex; align-items:center; gap:10px;">
+                        <input type="checkbox" id="showPasswords">
+                        <label for="showPasswords" style="font-size:14px; font-weight:700; color:#334155;">
+                            {{ "Show passwords" if ui_lang == "en" else "Mostrar contraseñas" }}
+                        </label>
+                    </div>
+
+                    <div style="
+                        margin-top:16px;
+                        padding:12px 14px;
+                        background:#eef4ff;
+                        border:1px solid #d6e5ff;
+                        border-radius:12px;
+                        color:#24406b;
+                        font-size:14px;
+                        font-weight:700;
+                    ">
+                        {{ "Last password change:" if ui_lang == "en" else "Último cambio de contraseña:" }}
+                        <span style="font-weight:900;">
+                            {{ last_password_change if last_password_change else ("Not available" if ui_lang == "en" else "No disponible") }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- PREFERENCES -->
+                <div style="background:#f4f7ff; border:1px solid #dbe4f0; border-radius:20px; padding:22px;">
+                    <h3 style="margin:0 0 18px 0; color:#081a43;">
+                        {{ "Preferences" if ui_lang == "en" else "Preferencias" }}
+                    </h3>
+
+                    <div style="max-width:320px;">
+                        <label style="display:block; margin-bottom:8px; font-size:14px; font-weight:800; color:#334155;">
+                            {{ "Language" if ui_lang == "en" else "Idioma" }}
+                        </label>
+                        <select
+                            name="language"
+                            style="
+                                width:100%;
+                                min-height:48px;
+                                padding:12px 14px;
+                                border-radius:12px;
+                                border:1px solid #cbd5e1;
+                                background:#ffffff;
+                                color:#0f172a;
+                                font-size:15px;
+                                outline:none;
+                            "
+                        >
+                            <option value="es" {% if ui_lang == "es" %}selected{% endif %}>Español</option>
+                            <option value="en" {% if ui_lang == "en" %}selected{% endif %}>English</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- ACTIONS -->
+                <div style="display:flex; justify-content:flex-end; gap:14px; flex-wrap:wrap; margin-top:24px;">
+
+                    <a
+                        href="/student/dashboard"
+                        style="
+                            min-width:180px;
+                            padding:14px 22px;
+                            border-radius:14px;
+                            text-decoration:none;
+                            text-align:center;
+                            font-size:15px;
+                            font-weight:800;
+                            background:#e2e8f0;
+                            color:#1e293b;
+                            box-shadow:0 6px 14px rgba(0,0,0,0.08);
+                        "
+                    >
+                        {{ "Cancel" if ui_lang == "en" else "Cancelar" }}
+                    </a>
+
+                    <button
+                        type="submit"
+                        style="
+                            min-width:220px;
+                            padding:14px 22px;
+                            border:none;
+                            border-radius:14px;
+                            background:linear-gradient(90deg,#7c3aed,#a855f7,#38bdf8);
+                            color:white;
+                            font-size:16px;
+                            font-weight:800;
+                            cursor:pointer;
+                            box-shadow:0 10px 24px rgba(124,58,237,0.28);
+                        "
+                    >
+                        {{ "Save Changes" if ui_lang == "en" else "Guardar cambios" }}
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const avatarInput = document.getElementById("avatarInput");
+    const avatarPreview = document.getElementById("avatarPreview");
+    const showPasswords = document.getElementById("showPasswords");
+    const passwordFields = document.querySelectorAll(".password-field");
+
+    if (avatarInput && avatarPreview) {
+        avatarInput.addEventListener("change", function (event) {
+            const file = event.target.files[0];
+
+            if (!file) {
+                return;
+            }
+
+            const reader = new FileReader();
+
+            reader.onload = function (e) {
+                avatarPreview.src = e.target.result;
+            };
+
+            reader.readAsDataURL(file);
+        });
+    }
+
+    if (showPasswords && passwordFields.length > 0) {
+        showPasswords.addEventListener("change", function () {
+            passwordFields.forEach(function (field) {
+                field.type = showPasswords.checked ? "text" : "password";
+            });
+        });
+    }
+});
+</script>
+
+{% endblock %}

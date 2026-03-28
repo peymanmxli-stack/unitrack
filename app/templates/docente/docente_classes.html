@@ -1,0 +1,278 @@
+{% extends "docente/docente_base.html" %}
+
+{% block title %}My Classes{% endblock %}
+
+{% block page_title %}
+My Classes
+{% endblock %}
+
+{% block content %}
+
+<style>
+.class-actions{
+    margin-top:18px;
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+}
+
+.class-action-form{
+    margin:0;
+    display:inline-flex;
+}
+
+.class-action-btn{
+    min-width:150px;
+    height:44px;
+    padding:0 18px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    box-sizing:border-box;
+    border-radius:10px;
+    font-weight:600;
+    text-decoration:none;
+}
+
+.enroll-box{
+    margin-top:16px;
+    padding:12px;
+    border:1px dashed #1e293b;
+    border-radius:10px;
+}
+
+/* ✅ FIX: input + select support */
+.enroll-box input,
+.enroll-box select{
+    width:100%;
+    height:38px;
+    border-radius:6px;
+    border:1px solid #1e293b;
+    background:#020617;
+    color:white;
+    padding:0 10px;
+}
+
+.enroll-box select:disabled{
+    opacity:0.7;
+    cursor:not-allowed;
+}
+
+.enroll-box button:disabled{
+    opacity:0.7;
+    cursor:not-allowed;
+}
+
+.enroll-feedback{
+    font-size:12px;
+    margin-top:6px;
+}
+
+.enroll-feedback.success{color:#22c55e;}
+.enroll-feedback.error{color:#ef4444;}
+
+@media (max-width: 700px){
+    .class-action-btn{width:100%;}
+    .class-action-form{width:100%;}
+}
+</style>
+
+<div class="card">
+    <h2>Assigned Classes</h2>
+    <p>Open attendance sessions, manage classes, and enroll students.</p>
+</div>
+
+{% if class_items and class_items|length > 0 %}
+
+<div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:20px;">
+
+{% for item in class_items %}
+{% set class_group = item.class_group %}
+{% set open_session = item.open_session %}
+{% set last_session = item.last_session %}
+{% set summary = item.attendance_summary %}
+{% set has_available_students = item.students and item.students|length > 0 %}
+
+<div class="card">
+
+    <h3 style="margin-top:0;">
+        {{ class_group.subject_name if class_group.subject_name else "Class" }}
+    </h3>
+
+    <p><strong>Group:</strong> {{ class_group.group_code if class_group.group_code else "N/A" }}</p>
+    <p><strong>Class ID:</strong> {{ class_group.id }}</p>
+    <p><strong>Enrolled Students:</strong> {{ item.students_count if item.students_count is defined else summary.total_students }}</p>
+
+    <hr style="border:0; border-top:1px solid #1e293b; margin:18px 0;">
+
+    <div class="enroll-box">
+        <strong>Enroll Student</strong>
+
+        <select
+            id="studentInput{{ class_group.id }}"
+            {% if not has_available_students %}disabled{% endif %}
+        >
+            {% if has_available_students %}
+                <option value="">Select student</option>
+                {% for student in item.students %}
+                    <option value="{{ student.id }}">
+                        {{ student.full_name() }} (ID: {{ student.id }})
+                    </option>
+                {% endfor %}
+            {% else %}
+                <option value="">No available students</option>
+            {% endif %}
+        </select>
+
+        <button
+            id="enrollButton{{ class_group.id }}"
+            class="btn btn-primary class-action-btn"
+            style="margin-top:8px;"
+            onclick="enrollStudent({{ class_group.id }})"
+            {% if not has_available_students %}disabled{% endif %}
+        >
+            Add Student
+        </button>
+
+        <div id="enrollFeedback{{ class_group.id }}" class="enroll-feedback">
+            {% if not has_available_students %}
+                All available students are already enrolled.
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="class-actions">
+
+        {% if open_session %}
+            <a class="btn btn-primary class-action-btn"
+               href="/docente/session/{{ open_session.id }}/roster-page">
+                Manage
+            </a>
+
+            <form method="POST"
+                  action="/docente/session/{{ open_session.id }}/close"
+                  class="class-action-form">
+                <button class="btn btn-danger class-action-btn" type="submit">
+                    Close
+                </button>
+            </form>
+        {% else %}
+            <a class="btn btn-success class-action-btn"
+               href="/docente/class/{{ class_group.id }}/open-session-form">
+                Open Session
+            </a>
+        {% endif %}
+
+    </div>
+
+</div>
+{% endfor %}
+
+</div>
+
+{% else %}
+<div class="card">
+    <p>No classes assigned yet.</p>
+</div>
+{% endif %}
+
+<script>
+function normalizeEnrollmentErrorMessage(message){
+    const cleanMessage = (message || "").trim();
+
+    if(!cleanMessage || cleanMessage.toLowerCase() === "error"){
+        return "Could not enroll the student. Please try again.";
+    }
+
+    if(cleanMessage === "This student is already enrolled in this class."){
+        return cleanMessage;
+    }
+
+    if(cleanMessage === "Student not found"){
+        return "Selected student was not found.";
+    }
+
+    if(cleanMessage === "Class group not found"){
+        return "This class was not found.";
+    }
+
+    if(cleanMessage === "Only users with role 'estudiante' can be enrolled"){
+        return "Only student accounts can be enrolled in this class.";
+    }
+
+    return cleanMessage;
+}
+
+function shouldReloadAfterBackNavigation(){
+    const navigationEntries = performance.getEntriesByType("navigation");
+
+    if(navigationEntries && navigationEntries.length > 0){
+        return navigationEntries[0].type === "back_forward";
+    }
+
+    return false;
+}
+
+window.addEventListener("pageshow", function(event){
+    if(event.persisted || shouldReloadAfterBackNavigation()){
+        window.location.reload();
+    }
+});
+
+async function enrollStudent(classId){
+    const input = document.getElementById("studentInput"+classId);
+    const button = document.getElementById("enrollButton"+classId);
+    const feedback = document.getElementById("enrollFeedback"+classId);
+
+    if(input.disabled){
+        feedback.innerText="No available students to enroll";
+        feedback.className="enroll-feedback error";
+        return;
+    }
+
+    const studentId = parseInt(input.value);
+
+    if(!studentId){
+        feedback.innerText="Select a valid student";
+        feedback.className="enroll-feedback error";
+        return;
+    }
+
+    button.disabled = true;
+
+    try{
+        const res = await fetch(`/enrollment/classes/${classId}/students`,{
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({student_id:studentId})
+        });
+
+        const data = await res.json();
+        const rawMessage = data.error || data.message || "Error";
+
+        if(!res.ok || data.success===false){
+            throw new Error(normalizeEnrollmentErrorMessage(rawMessage));
+        }
+
+        feedback.innerText="Student added successfully.";
+        feedback.className="enroll-feedback success";
+
+        input.value="";
+
+        setTimeout(() => {
+            window.location.reload();
+        }, 700);
+
+    }catch(e){
+        feedback.innerText=normalizeEnrollmentErrorMessage(e.message);
+        feedback.className="enroll-feedback error";
+    }finally{
+        if(!input.disabled){
+            button.disabled = false;
+        }
+    }
+}
+</script>
+
+{% endblock %}
