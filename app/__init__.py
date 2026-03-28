@@ -6,6 +6,7 @@ This file creates and configures the Flask application.
 
 from flask import Flask
 from flask_login import LoginManager
+import os
 
 from config import Config
 from .database import db
@@ -46,7 +47,7 @@ def create_app():
     app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{Config.DATABASE_PATH}"
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-    app.config["SECRET_KEY"] = Config.SECRET_KEY
+    app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", Config.SECRET_KEY)
 
     db.init_app(app)
 
