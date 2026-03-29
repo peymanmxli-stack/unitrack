@@ -82,6 +82,10 @@ def create_app():
 
         existing_tables = inspect(db.engine).get_table_names()
 
+        if "users" not in existing_tables:
+            db.create_all()
+            existing_tables = inspect(db.engine).get_table_names()
+
         if "users" in existing_tables:
             seed_default_admin()
 
