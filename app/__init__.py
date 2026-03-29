@@ -4,8 +4,10 @@ app/__init__.py
 This file creates and configures the Flask application.
 """
 
-from flask import Flask
+from flask import Flask, redirect, url_for
 from flask_login import LoginManager
+from flask_migrate import Migrate
+from sqlalchemy import inspect
 import os
 
 from config import Config
@@ -31,6 +33,7 @@ from .services.user_service import get_user_by_id
 
 # Flask-Login manager
 login_manager = LoginManager()
+migrate = Migrate()
 
 
 @login_manager.user_loader
@@ -44,12 +47,13 @@ def create_app():
 
     app.config.from_object(Config)
 
-    app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{Config.DATABASE_PATH}"
-    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    app.config["SQLALCHEMY_DATABASE_URI"] = Config.SQLALCHEMY_DATABASE_URI
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = Config.SQLALCHEMY_TRACK_MODIFICATIONS
 
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", Config.SECRET_KEY)
 
     db.init_app(app)
+    migrate.init_app(app, db)
 
     login_manager.init_app(app)
 
@@ -76,12 +80,13 @@ def create_app():
         from .models.attendance_model import Attendance
         from .models.access_log_model import AccessLog
 
-        db.create_all()
+        existing_tables = inspect(db.engine).get_table_names()
 
-        seed_default_admin()
+        if "users" in existing_tables:
+            seed_default_admin()
 
     @app.route("/")
     def home():
-        return "UniTrack backend is running successfully!"
+        return redirect(url_for("auth.login_page"))
 
     return app
