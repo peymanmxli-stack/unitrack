@@ -28,6 +28,9 @@ from .routes.personal_views import personal_views_bp
 # Seeder
 from .services.admin_seed_service import seed_default_admin
 
+# 🔥 NEW: validation code service
+from .services.validation_code_service import create_validation_code
+
 # User loader helper
 from .services.user_service import get_user_by_id
 
@@ -82,12 +85,18 @@ def create_app():
 
         existing_tables = inspect(db.engine).get_table_names()
 
-        if "users" not in existing_tables:
-            db.create_all()
-            existing_tables = inspect(db.engine).get_table_names()
-
         if "users" in existing_tables:
-            seed_default_admin()
+            admin_user, created = seed_default_admin()
+
+            # 🔥 NEW: auto-create validation code if none exist
+            existing_codes = db.session.query(ValidationCode).count()
+
+            if existing_codes == 0 and admin_user:
+                code = create_validation_code(
+                    generated_by_user_id=admin_user.id,
+                    expires_in_hours=24 * 7
+                )
+                print("AUTO VALIDATION CODE:", code.code)
 
     @app.route("/")
     def home():
