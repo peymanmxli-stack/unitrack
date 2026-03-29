@@ -75,6 +75,9 @@ def create_app():
     app.register_blueprint(personal_views_bp)
 
     with app.app_context():
+        # 🔥 FIX: required for Render free tier when migrations CLI is not available
+        db.create_all()
+
         from .models.user_model import User
         from .models.validation_code_model import ValidationCode
         from .models.class_group_model import ClassGroup
