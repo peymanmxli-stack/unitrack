@@ -87,6 +87,6 @@ def create_app():
 
     @app.route("/")
     def home():
-        return redirect(url_for("auth_bp.login_page"))
+        return redirect(url_for("auth.login_page"))
 
     return app
